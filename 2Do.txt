@@ -1,0 +1,48 @@
+UPDATE client
+----
+update chaque table en relation avec client (codeClient)
+
+----
+à chaque insert ou update il faut disable tous les champs
+prévoir un bouton au niveau des messages retour qui va enable ces champs
+----
+NE PLUS PRENDRE EN COMPTE LA MAJ DES MAGASINS
+----
+pour les ventes, essayer de faire pour chaque colonne du tableau javascript un tableau à l'image de
+sigat/public/apply.php
+1. faire une 1ère insertion dans facture
+2. et ensuite faire des updates
+3. pour enregistrer la vente comparer pour chaque article la qté en stock et la qté vendue
+si possible le prix de vente minimum
+----
+dispo stock: rechercher par le libellé avec système auto completion
+----
+prévoir un formulaire où on peut éditer la liste des articles(Catégorie+code+designation)
+prévoir un formulaire où on peut éditer la liste des catégories d'articles(code+designation)
+-----
+chercher cmt imprimer un bloc div avec javascript
+----
+ouvrir majfournisseur.php en popup dans majstock.php
+ouvrir majclient.php en popup dans dans les fenetres de vente
+-----
+Livre Vente à avoir:
+1. lister les factures concernées avec un bouton DETAILS
+2. le bouton DETAILS ouvre un popup où on peut soit livrer toute la facture ou une partie des articles
+-----
+Paramètres de connexion
+login: gsfdmin
+Passe: f9f33048492d9165f37ff0d25a2e9bd4
+-----
+revoir tous les tableaux où ya des sommations à faire et mettre tout ce qui est somme dans le else
+moncompte.php OK
+imprimer bl à la validation de la vente
+imprimer facture à la validation du paiement (comptant & crédit)
+session OK
+menu dynamique OK
+-----
+ajout banque, rccm, ifu dans la table client
+fichiers touchés par la modif:
+majclient.php ok
+popupbl.php ok
+popupvalid.php ok
+popupcredit.php ok

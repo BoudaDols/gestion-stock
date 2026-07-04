@@ -1,0 +1,16 @@
+# IDE
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PHP config (credentials)
+php/config.php
+
+# Duplicate/backup files
+*- Copie.php
+*- Copie *
+
+# Old backups
+old060218/
