@@ -1,13 +1,11 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$actu = date('Y-m-d');
-	$sql = "SELECT * FROM reglement,facture,client WHERE reglement_codeFacture!='' AND 
-	statutReglement!='D' AND statutReglement!='E' AND dateReglement='$actu' AND codeFacture=reglement_codeFacture 
-	AND codeClient=facture_codeClient";
-	$regl = SQLSelect($sql);
+	$regl = SQLSelect("SELECT * FROM reglement,facture,client WHERE reglement_codeFacture!='' AND 
+	statutReglement!='D' AND statutReglement!='E' AND dateReglement = :actu AND codeFacture=reglement_codeFacture 
+	AND codeClient=facture_codeClient", [':actu' => $actu]);
 	$nl = 1;
 ?>
 

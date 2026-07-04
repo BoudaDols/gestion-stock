@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Listes des Factures crédits";
 	$pagestitle = "Factures crédits non soldées"; // A remplacer après
@@ -9,10 +8,10 @@
 	
 	//pagination
 	$parpage = 5;
-	$sql = "SELECT DISTINCT codeFacture,dateFacture,nomClient,solvabiliteFacture 
+	$result = SQLSelect("SELECT DISTINCT codeFacture,dateFacture,nomClient,solvabiliteFacture 
 	FROM facture,client,article WHERE facture_codeTypeF='CREDIT' AND codeClient=facture_codeClient 
-	AND codeArticle=facture_codeArticle AND solvabiliteFacture=0";
-	$nblignes = count(SQLSelect($sql));
+	AND codeArticle=facture_codeArticle AND solvabiliteFacture=0");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	// Navigation pagination
@@ -34,10 +33,9 @@
 	ob_start();
 ?>
 <?php
-	$sqlf = "SELECT DISTINCT codeFacture,dateFacture,nomClient,solvabiliteFacture 
+	$factures = SQLSelect("SELECT DISTINCT codeFacture,dateFacture,nomClient,solvabiliteFacture 
 	FROM facture,client,article WHERE facture_codeTypeF='CREDIT' AND codeClient=facture_codeClient 
-	AND codeArticle=facture_codeArticle AND solvabiliteFacture=0 LIMIT $first, $parpage";
-	$factures = SQLSelect($sqlf);
+	AND codeArticle=facture_codeArticle AND solvabiliteFacture=0 LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 ?>
 
 	<div class="row col-lg-12">

@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$sql = "SELECT * FROM reglement,facture,client WHERE reglement_codeFacture!='' AND 
 	statutReglement='CD' AND codeFacture=reglement_codeFacture 

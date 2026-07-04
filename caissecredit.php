@@ -1,125 +1,99 @@
 ﻿<?php
-	// session_start();
-	require_once('php/fonction.php');
-	$bdd = new DB();
+require_once('php/session.php');
+require_once('php/fonction.php');
 
-	$pagetitle = "GSF | Encaissement des Factures";
-	$pagestitle = "Encaissement des factures"; // A remplacer après
-	$bcrumb = "Caisse > Facture Crédit";
-	
-	$msg = "";
-	$classmsg = "";
-	$action = "";
-	$button = "";
-	$btnvalue = "ANNULER";
-	$display = "style='display:none'";
-	
-	$totaenc = 0;
-	$resteap = 0;
-	
-	//pagination
-	$parpage = 10;
-	$sql = "SELECT DISTINCT codeFacture FROM facture WHERE statutFacture=1 AND 
-	solvabiliteFacture=0 AND facture_codeTypeF='CREDIT'";
-	$nblignes = count(SQLSelect($sql));
-	$nbpages = ceil($nblignes/$parpage);
-	
-	if(isset($_GET['action']))
-	{
-		$getaction = $_GET['action'];
-		$getcode = $_GET['code'];
-		
-		if($getaction=="encaiss")
-		{
-			$display = "style='display:inline'"; 
-			
-			$solv = 1;
-			$sum = 0;
-			$ttc = 0;
-			$remise = getRemise($getcode);
-			$brut = getBrut($getcode);
-			$net = getBrut($getcode);
-			$tva = getTVA($getcode);
-			$paye = getSumPaidC($getcode);
-			if ($tva == 0) {
-				$ttc = $net - $remise;
-			}else{
-				$rtva=($net*0.18);
-				$ttc = $net + $rtva - $remise;
-			}
-			$resteap=$ttc-$paye;
-			$nbtranche = Count(SQLSelect("SELECT * FROM reglement WHERE reglement_codeFacture='$getcode'"));
-			// echo 'brut: '.$brut.' - remise: '.$remise.' = net: '.$net.'<br>'; 
-			// echo 'Déjà payé: '.getSumPaidC($getcode); 
-			
-		}
-	}
-	
-	if(isset($_POST['btnsubmit']))
-	{
-		$versement = $_POST['mtt'];
-		$reste = $_POST['resteapayer'];
-		$fact = $_POST['codefacture'];
-		if(!is_Numeric($versement))
-		{
-			$msg = "Vérifiez la saisie du versement!";
-			$classmsg = "alert alert-danger";
-			$button = "<button type='button' class='close' data-dismiss='alert' 
-			aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
-		}
-		else
-		{
-			if($versement>$resteap)
-			{
-				$msg = "Le montant saisi est supérieur au reste à payer!";
-				$classmsg = "alert alert-warning";
-				$button = "<button type='button' class='close' data-dismiss='alert' 
-				aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
-			}
-			else
-			{
-				$insertreg = $bdd->db->PREPARE("INSERT INTO reglement (dateReglement,montantReglement,
-				objetReglement,statutReglement,reglement_codeFacture)
-				VALUES(:date,:mtt,:obj,:stat,:fac)");
-				$insertreg->EXECUTE(array('date'=>date("Y-m-d"),'mtt'=>$versement,'obj'=>'Règlement Facture crédit',
-				'stat'=>'C','fac'=>$fact));
-				
-				//controler si facture est à solder
-				if(($versement-$reste)>=0)
-				{
-					$updatefac = $bdd->db->PREPARE("UPDATE facture SET solvabiliteFacture=:sold
-					WHERE codeFacture=:codefac");
-					$updatefac->EXECUTE(array('sold'=>1,'codefac'=>$fact));
-				}
-				
-				/*$display = "style='display:none'";
-				$msg = "Facture encaissée avec succès!";
-				$classmsg = "alert alert-success";
-				$action = "<br><br><br><a href='caissecredit.php'><input type='button' 
-				class='btn btn-primary' value='NOUVEAU'></a>";*/
-				// impression après encaissement
-				// header("location:popupcredit.php?codefact=$getcode");
-				$btnvalue = "RETOUR";
-				echo "<script type='text/javascript' language='javascript'>window.open('popupcredit.php?codefact=$getcode'); </script>";
-			}
-		}
-	}
-	
-	// Navigation pagination
-	if(isset($_GET['page']))
-	{
-		$pactu = intval($_GET['page']);
-		if($pactu > $nbpages)
-		{
-			$pactu = $nbpages;
-		}
-	}
-	else
-	{
-		$pactu = 1;
-	}
-	$numligne = ($pactu*$parpage)-$parpage+1;	
-	$first = ($pactu-1)*$parpage;
+$pagetitle = "GSF | Encaissement des Factures";
+$pagestitle = "Encaissement des factures";
+$bcrumb = "Caisse > Facture Crédit";
+
+$msg = "";
+$classmsg = "";
+$action = "";
+$button = "";
+$btnvalue = "ANNULER";
+$display = "style='display:none'";
+
+$totaenc = 0;
+$resteap = 0;
+
+//pagination
+$parpage = 10;
+$countResult = SQLSelect("SELECT DISTINCT codeFacture FROM facture WHERE statutFacture = 1 AND 
+solvabiliteFacture = 0 AND facture_codeTypeF = 'CREDIT'");
+$nblignes = $countResult ? count($countResult) : 0;
+$nbpages = ceil($nblignes / $parpage);
+
+if (isset($_GET['action'])) {
+    $getaction = $_GET['action'];
+    $getcode = $_GET['code'];
+
+    if ($getaction == "encaiss") {
+        $display = "style='display:inline'";
+
+        $remise = getRemise($getcode);
+        $brut = getBrut($getcode);
+        $net = getBrut($getcode);
+        $tva = getTVA($getcode);
+        $paye = getSumPaidC($getcode);
+        if ($tva == 0) {
+            $ttc = $net - $remise;
+        } else {
+            $rtva = ($net * 0.18);
+            $ttc = $net + $rtva - $remise;
+        }
+        $resteap = $ttc - $paye;
+        $reglCount = SQLSelect("SELECT * FROM reglement WHERE reglement_codeFacture = :code", [':code' => $getcode]);
+        $nbtranche = $reglCount ? count($reglCount) : 0;
+    }
+}
+
+if (isset($_POST['btnsubmit'])) {
+    $versement = $_POST['mtt'];
+    $reste = $_POST['resteapayer'];
+    $fact = $_POST['codefacture'];
+    if (!is_numeric($versement)) {
+        $msg = "Vérifiez la saisie du versement!";
+        $classmsg = "alert alert-danger";
+        $button = "<button type='button' class='close' data-dismiss='alert' 
+        aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
+    } else {
+        if ($versement > $resteap) {
+            $msg = "Le montant saisi est supérieur au reste à payer!";
+            $classmsg = "alert alert-warning";
+            $button = "<button type='button' class='close' data-dismiss='alert' 
+            aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
+        } else {
+            SQLExecute("INSERT INTO reglement (dateReglement, montantReglement,
+                objetReglement, statutReglement, reglement_codeFacture)
+                VALUES (:date, :mtt, :obj, :stat, :fac)", [
+                ':date' => date("Y-m-d"), ':mtt' => $versement,
+                ':obj' => 'Règlement Facture crédit', ':stat' => 'C', ':fac' => $fact
+            ]);
+
+            // controler si facture est à solder
+            if (($versement - $reste) >= 0) {
+                SQLExecute("UPDATE facture SET solvabiliteFacture = :sold WHERE codeFacture = :codefac", [
+                    ':sold' => 1, ':codefac' => $fact
+                ]);
+            }
+
+            $btnvalue = "RETOUR";
+            echo "<script type='text/javascript'>window.open('popupcredit.php?codefact=" . urlencode($getcode) . "');</script>";
+        }
+    }
+}
+
+// Navigation pagination
+if (isset($_GET['page'])) {
+    $pactu = intval($_GET['page']);
+    if ($pactu > $nbpages) {
+        $pactu = $nbpages;
+    }
+} else {
+    $pactu = 1;
+}
+$numligne = ($pactu * $parpage) - $parpage + 1;
+$first = ($pactu - 1) * $parpage;
 	
 	ob_start();
 ?>
@@ -203,12 +177,11 @@
 
 	<!-- tableau-->
 	<?php
-		$sqlrech = "SELECT DISTINCT idFacture,facture_codeClient client,codeFacture facture,dateFacture datef,
-		SUM(totalFacture) total,remiseFacture remise,tvaFacture itva 
-		FROM facture WHERE statutFacture=1 AND solvabiliteFacture=0 
-		AND facture_codeTypeF='CREDIT' 
-		GROUP BY codeFacture LIMIT $first, $parpage";
-		$factures = SQLSelect($sqlrech);
+		$factures = SQLSelect("SELECT DISTINCT idFacture, facture_codeClient client, codeFacture facture, dateFacture datef,
+		SUM(totalFacture) total, remiseFacture remise, tvaFacture itva 
+		FROM facture WHERE statutFacture = 1 AND solvabiliteFacture = 0 
+		AND facture_codeTypeF = 'CREDIT' 
+		GROUP BY codeFacture LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 	?>
 	<div class="row col-lg-12">
 		<div class="box box-primary">

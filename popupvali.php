@@ -1,9 +1,8 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
 	require_once('php/ChiffresEnLettres.php');
 	$lettre = new ChiffreEnLettre();
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Ventes validées";
 	$pagestitle = "Ticket de caisse : Ventes validées"; // A remplacer après
@@ -20,9 +19,8 @@
 	if(isset($_GET['codefact']))
 	{
 		$code = $_GET['codefact'];
-		$sql = "SELECT DISTINCT facture_codeClient, remiseFacture, dateFacture, facture_codeTypeF, 
-		cmdFacture FROM facture WHERE codeFacture='$code'";
-		$facts = SQLSelect($sql);
+		$facts = SQLSelect("SELECT DISTINCT facture_codeClient, remiseFacture, dateFacture, facture_codeTypeF, 
+		cmdFacture FROM facture WHERE codeFacture = :code", [':code' => $code]);
 		if(!empty($facts))
 		{
 			foreach($facts as $fact):
@@ -33,8 +31,7 @@
 				$cmd = $fact->cmdFacture;
 			endforeach;
 		}
-		$sqlart = "SELECT * FROM facture WHERE codeFacture='$code'";
-		$arts = SQLSelect($sqlart);
+		$arts = SQLSelect("SELECT * FROM facture WHERE codeFacture = :code", [':code' => $code]);
 	}
 
 	 ob_start();	
@@ -94,8 +91,7 @@
 				<tr><td style="text-align:right">Ouagadougou, le <?=date_format(date_create($date),'d/m/Y');?></td></tr>
 			</table>
 			<?php
-				$sqlclt = "SELECT * FROM client WHERE codeClient='$client'";
-				$clts = SQLSelect($sqlclt);
+				$clts = SQLSelect("SELECT * FROM client WHERE codeClient = :client", [':client' => $client]);
 				foreach($clts as $clt):
 					$adress = $clt->adresseClient;
 					$telc = $clt->telClient;

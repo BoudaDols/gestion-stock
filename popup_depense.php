@@ -1,11 +1,9 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$actu = date('Y-m-d');
-	$sql = "SELECT * FROM reglement WHERE statutReglement='D' AND dateReglement='$actu'";
-	$regl = SQLSelect($sql);
+	$regl = SQLSelect("SELECT * FROM reglement WHERE statutReglement='D' AND dateReglement = :actu", [':actu' => $actu]);
 	$nl = 1;
 ?>
 

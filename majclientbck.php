@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J des clients";
 	$pagestitle = "Mise à jour des clients"; // A remplacer après
@@ -24,8 +23,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM client";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM client");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -35,11 +34,10 @@
 		
 		if($getaction=="edit")
 		{
-			$sqledit = "SELECT * FROM client WHERE codeClient='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM client WHERE codeClient = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$codeC = $getcode;
-				$nomC = stripslashes($edit->nomClient);
+				$nomC = $edit->nomClient;
 				$adresseC = $edit->adresseClient;
 				$telC = $edit->telClient;
 			endforeach;
@@ -49,42 +47,31 @@
 		}
 		elseif($getaction=="statut")
 		{
-			$sqlrechstat = "SELECT * FROM client WHERE codeClient='$getcode'";
-			$lestats = SQLSelect($sqlrechstat);
+			$lestats = SQLSelect("SELECT * FROM client WHERE codeClient = :code", [':code' => $getcode]);
 			foreach($lestats as $lestat):
 				$oldstat = $lestat->statutClient;
 			endforeach;
 			if($oldstat=="ON")
 			{
-				$sqlstat = $bdd->db->PREPARE("UPDATE client SET statutClient=:nstat WHERE codeClient=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'OFF', 'getcode'=>$getcode));
+				SQLExecute("UPDATE client SET statutClient = :nstat WHERE codeClient = :getcode", ['nstat'=>'OFF', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Client desactivé!";
-					$classmsg = "alert alert-warning";
-					$action = "<br><br><br><a href='majclient.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-					
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
+				$msg="Client desactivé!";
+				$classmsg = "alert alert-warning";
+				$action = "<br><br><br><a href='majclient.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
 				
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 			else
 			{
-				$sqlstat = $bdd->db->PREPARE("UPDATE client SET statutClient=:nstat WHERE codeClient=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'ON', 'getcode'=>$getcode));
+				SQLExecute("UPDATE client SET statutClient = :nstat WHERE codeClient = :getcode", ['nstat'=>'ON', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Client activé!";
-					$classmsg = "alert alert-success";
-					$action = "<br><br><br><a href='majclient.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-					
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
+				$msg="Client activé!";
+				$classmsg = "alert alert-success";
+				$action = "<br><br><br><a href='majclient.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
 				
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 		}
 			
@@ -98,14 +85,13 @@
 		{
 			
 			$codeC = $_POST['codeC'];
-			$nomC = addslashes($_POST['nomC']);
+			$nomC = $_POST['nomC'];
 			$telC = $_POST['telC'];
-			$adresseC = addslashes($_POST['adresseC']);
+			$adresseC = $_POST['adresseC'];
 			$stat = "ON";
 			
 			//Vérifier si le même code n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM client WHERE codeClient='$codeC'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM client WHERE codeClient = :code", [':code' => $codeC]);
 			if(!empty($result))
 			{
 				$msg = "Code déjà attribué à un client!<br>Créez-en un autre.";
@@ -114,15 +100,14 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("INSERT INTO client 
+				$success = SQLExecute("INSERT INTO client 
 										(codeClient, nomClient, adresseClient, telClient, statutClient) 
-										VALUES(:code, :nom, :adresse, :tel, :stat)
-										");
-				$sql->EXECUTE(array(
-									'code' => $codeC, 'nom' => $nomC, 
-									'adresse' => $adresseC, 'tel' => $telC, 'stat' => $stat
-									));
-				if($sql)
+										VALUES(:code, :nom, :adresse, :tel, :stat)",
+										[
+											'code' => $codeC, 'nom' => $nomC, 
+											'adresse' => $adresseC, 'tel' => $telC, 'stat' => $stat
+										]);
+				if($success)
 				{
 					$msg="Client créé avec succès!";
 					$classmsg = "alert alert-success";
@@ -145,16 +130,16 @@
 		}
 		else
 		{
-			$nomC = addslashes($_POST['nomC']);
+			$nomC = $_POST['nomC'];
 			$telC = $_POST['telC'];
-			$adresseC = addslashes($_POST['adresseC']);
+			$adresseC = $_POST['adresseC'];
 			
-			$sql = $bdd->db->PREPARE("UPDATE client SET nomClient=:nom, 
+			$success = SQLExecute("UPDATE client SET nomClient=:nom, 
 									adresseClient=:adresse, telClient=:tel
-									WHERE codeClient=:getcode");
-			$sql->EXECUTE(array('nom'=>$nomC,'adresse'=>$adresseC, 
-							 'tel'=>$telC,'getcode'=>$getcode));
-			if($sql)
+									WHERE codeClient=:getcode",
+									['nom'=>$nomC,'adresse'=>$adresseC, 
+									 'tel'=>$telC,'getcode'=>$getcode]);
+			if($success)
 			{
 				$msg="Client modifié avec succès!";
 				$classmsg = "alert alert-success";
@@ -199,12 +184,12 @@
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM client LIMIT $first, $parpage";
+			$sqlrech = "SELECT * FROM client LIMIT :offset, :limit";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM client WHERE codeClient LIKE '%$rech%' OR nomClient LIKE '%$rech%' LIMIT $first, $parpage";
+			$sqlrech = "SELECT * FROM client WHERE codeClient LIKE :rech OR nomClient LIKE :rech LIMIT :offset, :limit";
 			$tableau = "rechercher";
 		}
 		
@@ -285,14 +270,20 @@
 	</div>
 	
 	<?php
-		$sqlentier = "SELECT * FROM client LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$clients = SQLSelect($sqlentier);
+			$clients = SQLSelect("SELECT * FROM client LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$clients = SQLSelect($sqlrech);
+			if(isset($rech) && $rech != "")
+			{
+				$clients = SQLSelect("SELECT * FROM client WHERE codeClient LIKE :rech OR nomClient LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
+			}
+			else
+			{
+				$clients = SQLSelect("SELECT * FROM client LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
+			}
 		}
 	?>
 	
@@ -343,7 +334,7 @@
 									<tr>
 										<td><?= $numligne++;?></td>
 										<td><?= $client->codeClient; ?></td>
-										<td><?= stripslashes($client->nomClient) ?></td>
+										<td><?= $client->nomClient ?></td>
 										<td><?= $client->adresseClient; ?></td>
 										<td><?= $client->telClient; ?></td>
 										<td>

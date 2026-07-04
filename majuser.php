@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J des utilisateurs";
 	$pagestitle = "Mise à jour des utilisateurs"; // A remplacer après
@@ -23,8 +22,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM user";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM user");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -34,8 +33,7 @@
 		
 		if($getaction=="edit")
 		{
-			$sqledit = "SELECT * FROM user WHERE idUser='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM user WHERE idUser = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$idUser = $edit->idUser;
 				$nomU = $edit->nomUser;
@@ -43,22 +41,19 @@
 				$loginU = $edit->loginUser;
 			endforeach;
 			$btnaction = "update";
-			// $disabledc = "disabled";
 			$display = "style='display:inline'";
 		}
 		if($getaction=="stat")
 		{
-			$sqledit = "SELECT * FROM user WHERE idUser='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM user WHERE idUser = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$idUser = $edit->idUser;
 				$statut = $edit->statutCompteUser;
 			endforeach;
 			if($statut==1)
 			{
-				$sql = $sql = $bdd->db->PREPARE("UPDATE user SET statutCompteUser=:nstat 
-				WHERE idUser=:getcode");
-				$sql->EXECUTE(array('nstat'=>0,'getcode'=>$getcode));
+				SQLExecute("UPDATE user SET statutCompteUser=:nstat 
+				WHERE idUser=:getcode", ['nstat'=>0,'getcode'=>$getcode]);
 				$msg="Utilisateur desactivé avec succès!";
 				$classmsg = "alert alert-success";
 				$action = "<br><br><br><a href='majuser.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
@@ -67,9 +62,8 @@
 			}
 			else
 			{
-				$sql = $sql = $bdd->db->PREPARE("UPDATE user SET statutCompteUser=:nstat 
-				WHERE idUser=:getcode");
-				$sql->EXECUTE(array('nstat'=>1,'getcode'=>$getcode));
+				SQLExecute("UPDATE user SET statutCompteUser=:nstat 
+				WHERE idUser=:getcode", ['nstat'=>1,'getcode'=>$getcode]);
 				$msg="Utilisateur activé avec succès!";
 				$classmsg = "alert alert-success";
 				$action = "<br><br><br><a href='majuser.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
@@ -79,14 +73,12 @@
 		}
 		if($getaction=="reinit")
 		{
-			$sqledit = "SELECT * FROM user WHERE idUser='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM user WHERE idUser = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$loginU = $edit->loginUser;
 			endforeach;
-			$sql = $bdd->db->PREPARE("UPDATE user SET mdpUser=:mdp 
-			WHERE idUser=:getcode");
-			$sql->EXECUTE(array('mdp'=>md5($loginU),'getcode'=>$getcode));
+			SQLExecute("UPDATE user SET mdpUser=:mdp 
+			WHERE idUser=:getcode", ['mdp'=>password_hash($loginU, PASSWORD_DEFAULT),'getcode'=>$getcode]);
 			$msg="Mot de passe reinitialisé avec succès!";
 			$classmsg = "alert alert-success";
 			$action = "<br><br><br><a href='majuser.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
@@ -102,12 +94,11 @@
 		if($btnaction=="insert")
 		{
 			$nomU = $_POST['nomU'];
-			$prenomU = addslashes($_POST['prenomU']);
+			$prenomU = $_POST['prenomU'];
 			$loginU = $_POST['loginU'];
 			$compteU = $_POST['compteU'];
 			//Vérifier si le même login n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM user WHERE loginUser='$loginU'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM user WHERE loginUser = :login", [':login' => $loginU]);
 			if(!empty($result))
 			{
 				$msg = "Login déjà attribué à un utilisateur!<br>Créez-en un autre.";
@@ -116,12 +107,12 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("INSERT INTO user (nomUser,prenomUser,loginUser,mdpUser,
+				$success = SQLExecute("INSERT INTO user (nomUser,prenomUser,loginUser,mdpUser,
 				statutCompteUser,user_codeCompte) 
-				VALUES(:nom,:prenom,:login,:mdp,:statut,:compte)");
-				$sql->EXECUTE(array('nom'=>$nomU,'prenom'=>$prenomU,'login'=>$loginU,
-				'mdp'=>md5($loginU),'statut'=>1,'compte'=>$compteU));
-				if($sql)
+				VALUES(:nom,:prenom,:login,:mdp,:statut,:compte)",
+				['nom'=>$nomU,'prenom'=>$prenomU,'login'=>$loginU,
+				'mdp'=>password_hash($loginU, PASSWORD_DEFAULT),'statut'=>1,'compte'=>$compteU]);
+				if($success)
 				{
 					$msg="Utilisateur créé avec succès!";
 					$classmsg = "alert alert-success";
@@ -144,12 +135,11 @@
 		else
 		{
 			$nomU = $_POST['nomU'];
-			$prenomU = addslashes($_POST['prenomU']);
+			$prenomU = $_POST['prenomU'];
 			$loginU = $_POST['loginU'];
 			$compteU = $_POST['compteU'];
 			//Vérifier si le même login n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM user WHERE loginUser='$loginU' AND idUser!='$getcode'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM user WHERE loginUser = :login AND idUser != :code", [':login' => $loginU, ':code' => $getcode]);
 			if(!empty($result))
 			{
 				$msg = "Login déjà attribué à un utilisateur!<br>Créez-en un autre.";
@@ -158,11 +148,11 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("UPDATE user SET nomUser=:nom,prenomUser=:prenom, 
-				loginUser=:login,user_codeCompte=:compte WHERE idUser=:getcode");
-				$sql->EXECUTE(array('nom'=>$nomU,'prenom'=>$prenomU,'login'=>$loginU,
-				'compte'=>$compteU,'getcode'=>$getcode));
-				if($sql)
+				$success = SQLExecute("UPDATE user SET nomUser=:nom,prenomUser=:prenom, 
+				loginUser=:login,user_codeCompte=:compte WHERE idUser=:getcode",
+				['nom'=>$nomU,'prenom'=>$prenomU,'login'=>$loginU,
+				'compte'=>$compteU,'getcode'=>$getcode]);
+				if($success)
 				{
 					$msg="Utilisateur modifié avec succès!";
 					$classmsg = "alert alert-success";
@@ -180,9 +170,7 @@
 					$disabledc = "disabled";
 					$disabled = "disabled";
 				}
-				
 			}
-			
 		}
 	}
 	
@@ -202,18 +190,15 @@
 	$numligne = ($pactu*$parpage)-$parpage+1;	
 	$first = ($pactu-1)*$parpage;
 	
-	
 	if(isset($_POST['btnresearch']))
 	{
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM user LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM user WHERE loginUser LIKE '%$rech%' OR nomUser LIKE '%$rech%' OR prenomUser LIKE '%$rech%' LIMIT $first, $parpage";
 			$tableau = "rechercher";
 		}
 	}
@@ -243,7 +228,7 @@
 								<div class="input-group-addon">
 									<i>Prénoms</i>
 								</div>
-								<input type="text" class="form-control" style="width:350px" name="prenomU" placeholder="Prénom" value="<?= stripslashes($prenomU);?>" <?= $disabled; ?> required/>
+								<input type="text" class="form-control" style="width:350px" name="prenomU" placeholder="Prénom" value="<?= $prenomU;?>" <?= $disabled; ?> required/>
 							</div>
 						</div>
 					</div>
@@ -262,14 +247,13 @@
 									<i>Compte</i>
 								</div>
 								<?php
-									$sql="SELECT * FROM compte";
-									$cpts=SQLSelect($sql);
+									$cpts=SQLSelect("SELECT * FROM compte");
 								?>
 								<select class="form-control" type="text" style="width:400px" 
 								name="compteU" <?=$disabled;?> >
 									<?php foreach ($cpts as $cpt):?>
 										<option value="<?=$cpt->codeCompte;?>">
-											<?=stripslashes($cpt->libelleCompte);?>
+											<?=$cpt->libelleCompte;?>
 										</option>
 									<?php endforeach;?>
 								</select>
@@ -306,14 +290,13 @@
 	</div>
 	
 	<?php
-		$sqlentier = "SELECT * FROM user LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$users = SQLSelect($sqlentier);
+			$users = SQLSelect("SELECT * FROM user LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$users = SQLSelect($sqlrech);
+			$users = SQLSelect("SELECT * FROM user WHERE loginUser LIKE :rech OR nomUser LIKE :rech OR prenomUser LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	
@@ -362,7 +345,7 @@
 									<tr>
 										<td><?= $numligne++;?></td>
 										<td><?= $user->nomUser; ?></td>
-										<td><?= stripslashes($user->prenomUser) ?></td>
+										<td><?= $user->prenomUser ?></td>
 										<td><?= $user->loginUser; ?></td>
 										<td><?= $user->user_codeCompte; ?></td>
 										<td style="width:50px">

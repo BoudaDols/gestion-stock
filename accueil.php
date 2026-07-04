@@ -1,25 +1,20 @@
 ﻿<?php
-	// session_start();
-	if(!isset($_SESSION))
-	{
-		session_start();
-	}
-	
-	if(!isset($_SESSION['user']))
-	{
-		header('location:index.php');
-	}
-	require_once('php/fonction.php');
-	$bdd = new DB();
+require_once('php/session.php');
+require_once('php/fonction.php');
 
-	$pagetitle = "GSF | Tableau de bord";
-	$pagestitle = "Tableau de bord"; // A remplacer après
-	$bcrumb = "";
-	
-	$msg = "";
-	$classmsg = "";
-	$button = "";
-	ob_start();
+if (!isset($_SESSION['user'])) {
+    header('Location: index.php');
+    exit;
+}
+
+$pagetitle = "GSF | Tableau de bord";
+$pagestitle = "Tableau de bord";
+$bcrumb = "";
+
+$msg = "";
+$classmsg = "";
+$button = "";
+ob_start();
 ?>
 <script src="/php/Highcharts/code/highcharts.js"></script>
 <script src="/php/Highcharts/code/highcharts-3d.js"></script>
@@ -54,96 +49,66 @@
 	//vente comptant du jour
 	$actu = date('Y-m-d');
 	$tventecomptant = 0;
-	$sqlvcp = "SELECT montantReglement FROM reglement WHERE reglement_codeFacture!='' AND 
-	statutReglement='C' AND dateReglement='$actu'";
-	$ventecpjr=SQLSelect($sqlvcp);
-	if(empty($ventecpjr))
-	{
-		$tventecomptant=0;
-	}
-	else
-	{
-		foreach($ventecpjr as $vte):
+	$sqlvcp = "SELECT montantReglement FROM reglement WHERE reglement_codeFacture != '' AND 
+	statutReglement = 'C' AND dateReglement = :dateJour";
+	$ventecpjr = SQLSelect($sqlvcp, [':dateJour' => $actu]);
+	if ($ventecpjr) {
+		foreach ($ventecpjr as $vte) {
 			$tventecomptant += $vte->montantReglement;
-		endforeach;
+		}
 	}
-	//fin vente comptant du jour
+
 	//vente credit du jour
-	$actu = date('Y-m-d');
 	$tventecredit = 0;
-	$sqlvcd = "SELECT montantReglement FROM reglement WHERE reglement_codeFacture!='' AND 
-	statutReglement='A' AND dateReglement='$actu'";
-	$ventecdjr=SQLSelect($sqlvcd);
-	if(empty($ventecdjr))
-	{
-		$tventecredit=0;
-	}
-	else
-	{
-		foreach($ventecdjr as $vte):
+	$sqlvcd = "SELECT montantReglement FROM reglement WHERE reglement_codeFacture != '' AND 
+	statutReglement = 'A' AND dateReglement = :dateJour";
+	$ventecdjr = SQLSelect($sqlvcd, [':dateJour' => $actu]);
+	if ($ventecdjr) {
+		foreach ($ventecdjr as $vte) {
 			$tventecredit += $vte->montantReglement;
-		endforeach;
+		}
 	}
-	//fin vente credit du jour
+
 	//calcul pourcentage
 	$total = $tventecomptant + $tventecredit;
-	if($total==0)
-	{
+	if ($total == 0) {
 		$pourcentagecomptant = 50.0;
 		$pourcentagecredit = 50.0;
-	}else
-	{
-		$pourcentagecomptant = ($tventecomptant*100)/$total;
-		$pourcentagecredit = ($tventecredit*100)/$total;
+	} else {
+		$pourcentagecomptant = ($tventecomptant * 100) / $total;
+		$pourcentagecredit = ($tventecredit * 100) / $total;
 	}
-	
 
-    //operations caisse du jour
-    //entrees
-    $actu = date('Y-m-d');
+    //operations caisse du jour — entrees
     $tentre = 0;
-    $sqle = "SELECT montantReglement FROM reglement WHERE reglement_codeFacture='' AND 
-    statutReglement='E' AND dateReglement='$actu'";
-    $ejr=SQLSelect($sqle);
-    if(empty($ejr))
-    {
-        $tentre=0;
-    }
-    else
-    {
-        foreach($ejr as $e):
+    $sqle = "SELECT montantReglement FROM reglement WHERE reglement_codeFacture = '' AND 
+    statutReglement = 'E' AND dateReglement = :dateJour";
+    $ejr = SQLSelect($sqle, [':dateJour' => $actu]);
+    if ($ejr) {
+        foreach ($ejr as $e) {
             $tentre += $e->montantReglement;
-        endforeach;
+        }
     }
-    //fin entrees
+
     //sorties
-    $actu = date('Y-m-d');
     $tsortie = 0;
-    $sqls = "SELECT montantReglement FROM reglement WHERE reglement_codeFacture='' AND 
-    statutReglement='D' AND dateReglement='$actu'";
-    $sjr=SQLSelect($sqls);
-    if(empty($sjr))
-    {
-        $tsortie=0;
-    }
-    else
-    {
-        foreach($sjr as $s):
+    $sqls = "SELECT montantReglement FROM reglement WHERE reglement_codeFacture = '' AND 
+    statutReglement = 'D' AND dateReglement = :dateJour";
+    $sjr = SQLSelect($sqls, [':dateJour' => $actu]);
+    if ($sjr) {
+        foreach ($sjr as $s) {
             $tsortie += $s->montantReglement;
-        endforeach;
+        }
     }
-    //fin sorties
-    //calcul pourcentage
+
     //calcul pourcentage
     $totalc = $tentre + $tsortie;
-    if($totalc==0)
-    {
+    if ($totalc == 0) {
         $pourcentageentre = 50.0;
         $pourcentagesortie = 50.0;
-    }else
-    {
-        $pourcentageentre = ($tentre*100)/$totalc;
-        $pourcentagesortie = ($tsortie*100)/$totalc;
+    } else {
+        $pourcentageentre = ($tentre * 100) / $totalc;
+        $pourcentagesortie = ($tsortie * 100) / $totalc;
     }
 
 ?>

@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J des articles";
 	$pagestitle = "Mise à jour des articles"; // A remplacer après
@@ -18,15 +17,14 @@
 	$action = "";
 	
 	$codeA = "";
-	//$barreA = "";
 	$nomA = "";
 	$prixA = "";
 	$seuilA = "";
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM article";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM article");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -36,15 +34,12 @@
 		
 		if($getaction=="edit")
 		{
-			$sqledit = "SELECT * FROM article WHERE codeArticle='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM article WHERE codeArticle = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$codeA = $getcode;
-				//$barreA = $edit->codeBarArticle;
-				$nomA = stripslashes($edit->designationArticle);
+				$nomA = $edit->designationArticle;
 				$prixA = $edit->prixMinArticle;
 				$seuilA = $edit->seuilArticle;
-				
 			endforeach;
 			$btnaction = "update";
 			$disabledc = "disabled";
@@ -52,44 +47,35 @@
 		}
 		elseif($getaction=="statut")
 		{
-			$sqlrechstat = "SELECT * FROM article WHERE codeArticle='$getcode'";
-			$lestats = SQLSelect($sqlrechstat);
+			$lestats = SQLSelect("SELECT * FROM article WHERE codeArticle = :code", [':code' => $getcode]);
 			foreach($lestats as $lestat):
 				$oldstat = $lestat->statutArticle;
 			endforeach;
 			if($oldstat=="ON")
 			{
-				$sqlstat = $bdd->db->PREPARE("UPDATE article SET statutArticle=:nstat 
-				WHERE codeArticle=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'OFF', 'getcode'=>$getcode));
+				SQLExecute("UPDATE article SET statutArticle=:nstat 
+				WHERE codeArticle=:getcode", ['nstat'=>'OFF', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Article desactivé!";
-					$classmsg = "alert alert-warning";
-					$action = "<br><br><br><a href='majarticle.php'><input type='button' 
-					class='btn btn-primary' value='NOUVEAU'></a>";
-					
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
+				$msg="Article desactivé!";
+				$classmsg = "alert alert-warning";
+				$action = "<br><br><br><a href='majarticle.php'><input type='button' 
+				class='btn btn-primary' value='NOUVEAU'></a>";
+				
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 			else
 			{
-				$sqlstat = $bdd->db->PREPARE("UPDATE article SET statutArticle=:nstat 
-				WHERE codeArticle=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'ON', 'getcode'=>$getcode));
+				SQLExecute("UPDATE article SET statutArticle=:nstat 
+				WHERE codeArticle=:getcode", ['nstat'=>'ON', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Article activé!";
-					$classmsg = "alert alert-success";
-					$action = "<br><br><br><a href='majarticle.php'><input type='button' 
-					class='btn btn-primary' value='NOUVEAU'></a>";
-					
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
+				$msg="Article activé!";
+				$classmsg = "alert alert-success";
+				$action = "<br><br><br><a href='majarticle.php'><input type='button' 
+				class='btn btn-primary' value='NOUVEAU'></a>";
+				
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 		}
 	}
@@ -101,16 +87,14 @@
 		if($btnaction=="insert")
 		{
 			$codeA = $_POST['codeA'];
-			//$barreA = $_POST['barreA'];
-			$nomA = addslashes($_POST['nomA']);
+			$nomA = $_POST['nomA'];
 			$prixA = $_POST['prixA'];
 			$seuilA = $_POST['seuilA'];
 			$categ = $_POST['categ'];
 			$stat = "ON";
 			
 			//Vérifier si le même code n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM article WHERE codeArticle='$codeA'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM article WHERE codeArticle = :code", [':code' => $codeA]);
 			if(!empty($result))
 			{
 				$msg = "Code déjà attribué à un article!<br>Créez-en un autre.";
@@ -120,7 +104,7 @@
 			}
 			else
 			{
-				if(!is_Numeric($prixA) OR !is_Numeric($seuilA))
+				if(!is_numeric($prixA) OR !is_numeric($seuilA))
 				{
 					$msg="Vérifiez la saisie du prix et du seuil!<br>
 					<input type='button' value='Retour' class='btn btn-info'
@@ -131,14 +115,14 @@
 				}
 				else
 				{
-					$sql = $bdd->db->PREPARE("INSERT INTO article 
+					$success = SQLExecute("INSERT INTO article 
 					(codeArticle, designationArticle,prixMinArticle, seuilArticle, 
 					article_codeTypeA, statutArticle) 
-					VALUES(:code, :nom, :prix, :seuil, :cat, :stat)");
-					$sql->EXECUTE(array('code' => $codeA, 'nom' => $nomA, 'prix'=>$prixA,
-										'seuil'=>$seuilA, 'cat'=>$categ, 'stat'=>$stat));
+					VALUES(:code, :nom, :prix, :seuil, :cat, :stat)",
+					['code' => $codeA, 'nom' => $nomA, 'prix'=>$prixA,
+					'seuil'=>$seuilA, 'cat'=>$categ, 'stat'=>$stat]);
 					
-					if($sql)
+					if($success)
 					{
 						$msg="Artilce créé avec succès!";
 						$classmsg = "alert alert-success";
@@ -163,12 +147,12 @@
 		}
 		else
 		{
-			$nomA = addslashes($_POST['nomA']);
+			$nomA = $_POST['nomA'];
 			$prixA = $_POST['prixA'];
 			$seuilA = $_POST['seuilA'];
 			$categ = $_POST['categ'];
 			
-			if(!is_Numeric($prixA) OR !is_Numeric($seuilA))
+			if(!is_numeric($prixA) OR !is_numeric($seuilA))
 			{
 				$msg="Vérifiez la saisie du prix et du seuil!<br>
 				<input type='button' value='Retour' class='btn btn-info'
@@ -179,14 +163,14 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("UPDATE article 
+				$success = SQLExecute("UPDATE article 
 							SET designationArticle=:nom, prixMinArticle=:prix,
 							seuilArticle=:seuil, article_codeTypeA=:cat
-							WHERE codeArticle=:getcode");
-				$sql->EXECUTE(array('nom'=>$nomA, 'prix'=>$prixA, 'seuil'=>$seuilA, 
-									'cat'=>$categ, 'getcode'=>$getcode));
+							WHERE codeArticle=:getcode",
+							['nom'=>$nomA, 'prix'=>$prixA, 'seuil'=>$seuilA, 
+							'cat'=>$categ, 'getcode'=>$getcode]);
 				
-				if($sql)
+				if($success)
 				{
 					$msg="Article modifié avec succès!";
 					$classmsg = "alert alert-success";
@@ -233,13 +217,10 @@
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM article LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM article WHERE codeArticle LIKE '%$rech%' OR 
-			designationArticle LIKE '%$rech%' LIMIT $first, $parpage";
 			$tableau = "rechercher";
 		}
 	}
@@ -263,8 +244,7 @@
 									<i class="fa fa-barcode"></i>
 								</div>
 								<?php
-									$sql="SELECT * FROM typearticle WHERE statutTypeA='ON'";
-									$cats=SQLSelect($sql);
+									$cats=SQLSelect("SELECT * FROM typearticle WHERE statutTypeA='ON'");
 								?>
 								<select class="form-control" type="text" style="width:350px" name="categ" id="categ" <?= $disabled; ?> >
 									<option value="-1">Choisir une catégorie</option>
@@ -346,14 +326,14 @@
 	</div>
 	
 	<?php
-		$sqlentier = "SELECT * FROM article LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$articles = SQLSelect($sqlentier);
+			$articles = SQLSelect("SELECT * FROM article LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$articles = SQLSelect($sqlrech);
+			$articles = SQLSelect("SELECT * FROM article WHERE codeArticle LIKE :rech OR 
+			designationArticle LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	
@@ -406,7 +386,7 @@
 										<td><?= $numligne++;?></td>
 										<td><?= $art->article_codeTypeA; ?></td>
 										<td><?= $art->codeArticle; ?></td>
-										<td><?= stripslashes($art->designationArticle) ?></td>
+										<td><?= $art->designationArticle ?></td>
 										<td><?= number_format($art->prixMinArticle, 0, ',', ' '); ?></td>
 										<td><?= number_format($art->seuilArticle, 0, ',', ' '); ?></td>
 										<td><?= number_format($art->qteStockArticle, 0, ',', ' '); ?></td>

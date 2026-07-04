@@ -1,14 +1,11 @@
 <?php
-	if(!isset($_SESSION))
-	{
-		session_start();
-	}
-	
-	if(!isset($_SESSION['user']))
-	{
-		header('location:index.php');
-	}
-	require_once('php/fonction.php');
+require_once('php/session.php');
+require_once('php/fonction.php');
+
+if (!isset($_SESSION['user'])) {
+    header('Location: index.php');
+    exit;
+}
 ?>   
 <!DOCTYPE html>
 <html>
@@ -43,10 +40,8 @@
 
 		<!-- Highcharts -->
 		<script src="https://code.highcharts.com/highcharts.js"></script>
-
-		<script src="https://code.highcharts.com/modules/oldie.js"></script>
-
-		<script src="/php/Highcharts/code/js/highcharts.js"></script>
+		<script src="https://code.highcharts.com/highcharts-3d.js"></script>
+		<script src="https://code.highcharts.com/modules/exporting.js"></script>
 		
 		<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
 		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -128,39 +123,39 @@
 					<?php
 						$sqlmenu = "SELECT DISTINCT idMenu, titreMenu, iconeMenu FROM menu, 
 						menuitem, access WHERE idMenu=menu_idMenu AND 
-						codeSousMenu=access_codeSousMenu AND access_codeCompte='$tcpt' 
+						codeSousMenu=access_codeSousMenu AND access_codeCompte = :compte 
 						ORDER BY idMenu ASC";
-						$menus = SQLSelect($sqlmenu);
-						foreach($menus as $menu):
+						$menus = SQLSelect($sqlmenu, [':compte' => $tcpt]);
+						if ($menus): foreach($menus as $menu):
 					?>		
 						<ul class="sidebar-menu">
 							<li class="treeview">
 								<a href="#">
-									<i class="<?=$menu->iconeMenu?>"></i>
-									<span><?=$menu->titreMenu?></span>
+									<i class="<?=htmlspecialchars($menu->iconeMenu)?>"></i>
+									<span><?=htmlspecialchars($menu->titreMenu)?></span>
 									<i class="fa fa-angle-left pull-right"></i>
 								</a>
 								<?php
 									$idmenu = $menu->idMenu;
 									$sqlitem = "SELECT * FROM menuitem, access WHERE codeSousMenu=access_codeSousMenu 
-									AND menu_idMenu='$idmenu' AND access_codeCompte='$tcpt'";
-									$items = SQLSelect($sqlitem);
-									foreach($items as $item):
+									AND menu_idMenu = :idmenu AND access_codeCompte = :compte";
+									$items = SQLSelect($sqlitem, [':idmenu' => $idmenu, ':compte' => $tcpt]);
+									if ($items): foreach($items as $item):
 								?>
 										<ul class="treeview-menu">
 											<li>
-												<a href="<?= $item->lienSousMenu;?>">
-													<i class="glyphicon glyphicon-chevron-right"></i><?= $item->titreSousMenu;?>
+												<a href="<?= htmlspecialchars($item->lienSousMenu);?>">
+													<i class="glyphicon glyphicon-chevron-right"></i><?= htmlspecialchars($item->titreSousMenu);?>
 												</a>
 											</li>
 										</ul>
 									<?php
-										endforeach;
+										endforeach; endif;
 									?>
 							</li>
 						</ul>
 					<?php						
-						endforeach;
+						endforeach; endif;
 					?>
 				</section>
 				<!-- /.sidebar -->
@@ -221,6 +216,7 @@
 		<!-- jQuery Knob Chart -->
 		<script src="plugins/knob/jquery.knob.js" type="text/javascript"></script>
 		<!-- daterangepicker -->
+		<script src="plugins/daterangepicker/moment.min.js" type="text/javascript"></script>
 		<script src="plugins/daterangepicker/daterangepicker.js" type="text/javascript"></script>
 		<!-- datepicker -->
 		<script src="plugins/datepicker/bootstrap-datepicker.js" type="text/javascript"></script>

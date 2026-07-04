@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Ventes annulées";
 	$pagestitle = "Détails des Factures : Ventes annulées"; // A remplacer après
@@ -16,9 +15,8 @@
 ?>
 
 	<?php
-		$sql = "SELECT DISTINCT facture_codeClient, remiseFacture, dateFacture, facture_codeTypeF 
-		FROM facture WHERE codeFacture='$code'";
-		$facts = SQLSelect($sql);
+		$facts = SQLSelect("SELECT DISTINCT facture_codeClient, remiseFacture, dateFacture, facture_codeTypeF 
+		FROM facture WHERE codeFacture = :code", [':code' => $code]);
 		if(!empty($facts))
 		{
 			foreach($facts as $fact):
@@ -28,8 +26,7 @@
 				$type = $fact->facture_codeTypeF;
 			endforeach;
 		}
-		$sqlart = "SELECT * FROM facture WHERE codeFacture='$code'";
-		$arts = SQLSelect($sqlart);
+		$arts = SQLSelect("SELECT * FROM facture WHERE codeFacture = :code", [':code' => $code]);
 	?>
 	<div id="toprint">	
 		<section class="invoice">
@@ -56,8 +53,7 @@
 					<b>A</b>
 					<address>
 						<?php
-							$sqlclt = "SELECT * FROM client WHERE codeClient='$client'";
-							$clts = SQLSelect($sqlclt);
+							$clts = SQLSelect("SELECT * FROM client WHERE codeClient = :client", [':client' => $client]);
 							foreach($clts as $clt):
 								$adress = $clt->adresseClient;
 								$tel = $clt->telClient;

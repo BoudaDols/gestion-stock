@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$sql = "SELECT DISTINCT r.idReglement, r.dateReglement, r.reglement_codeFacture, c.nomClient, r.montantReglement
 	FROM reglement r, facture f, client c

@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J des catégories d'artciles";
 	$pagestitle = "Mise à jour des catégories d'articles"; // A remplacer après
@@ -22,8 +21,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM typearticle";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM typearticle");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -33,11 +32,10 @@
 		
 		if($getaction=="edit")
 		{
-			$sqledit = "SELECT * FROM typearticle WHERE codeTypeA='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM typearticle WHERE codeTypeA = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$codeTA = $getcode;
-				$nomTA = stripslashes($edit->designationTypeA);
+				$nomTA = $edit->designationTypeA;
 			endforeach;
 			$btnaction = "update";
 			$disabledc = "disabled";
@@ -45,59 +43,39 @@
 		}
 		elseif($getaction=="statut")
 		{
-			$sqlrechstat = "SELECT * FROM typearticle WHERE codeTypeA='$getcode'";
-			$lestats = SQLSelect($sqlrechstat);
+			$lestats = SQLSelect("SELECT * FROM typearticle WHERE codeTypeA = :code", [':code' => $getcode]);
 			foreach($lestats as $lestat):
 				$oldstat = $lestat->statutTypeA;
 			endforeach;
 			if($oldstat=="ON")
 			{
 				//d'abord desactiver les articles en lien
-				$art = "SELECT * FROM article WHERE article_codeTypeA='$getcode'";
-				/*if(!empty(SQLSelect($art)))
-				{
-					$act_art = $bdd->db->PREPARE("UPDATE article SET statutArticle=:nstat 
-												WHERE article_codeTypeA=:getcode");
-					$act_art->EXECUTE(array('nstat'=>'OFF', 'getcode'=>$getcode));
-				}*/
+				$art = SQLSelect("SELECT * FROM article WHERE article_codeTypeA = :code", [':code' => $getcode]);
+
+				SQLExecute("UPDATE typearticle SET statutTypeA=:nstat WHERE codeTypeA=:getcode",
+				['nstat'=>'OFF', 'getcode'=>$getcode]);
 				
-				$sqlstat = $bdd->db->PREPARE("UPDATE typearticle SET statutTypeA=:nstat WHERE codeTypeA=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'OFF', 'getcode'=>$getcode));
-				
-				if($sqlstat)
-				{
-					$msg="Catégorie desactivée!";
-					$classmsg = "alert alert-warning";
-					$action = "<br><br><br><a href='majtypearticle.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-				
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
-				
+				$msg="Catégorie desactivée!";
+				$classmsg = "alert alert-warning";
+				$action = "<br><br><br><a href='majtypearticle.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
+			
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 			else
 			{
 				//d'abord activer les articles en lien
-				$art = "SELECT * FROM article WHERE article_codeTypeA='$getcode'";
-				/*if(!empty(SQLSelect($art)))
-				{
-					$act_art = $bdd->db->PREPARE("UPDATE article SET statutArticle=:nstat 
-												WHERE article_codeTypeA=:getcode");
-					$act_art->EXECUTE(array('nstat'=>'ON', 'getcode'=>$getcode));
-				}*/
-				$sqlstat = $bdd->db->PREPARE("UPDATE typearticle SET statutTypeA=:nstat WHERE codeTypeA=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'ON', 'getcode'=>$getcode));
+				$art = SQLSelect("SELECT * FROM article WHERE article_codeTypeA = :code", [':code' => $getcode]);
+
+				SQLExecute("UPDATE typearticle SET statutTypeA=:nstat WHERE codeTypeA=:getcode",
+				['nstat'=>'ON', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Catégorie activée!";
-					$classmsg = "alert alert-success";
-					$action = "<br><br><br><a href='majtypearticle.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-				
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
-				
+				$msg="Catégorie activée!";
+				$classmsg = "alert alert-success";
+				$action = "<br><br><br><a href='majtypearticle.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
+			
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 		}
 			
@@ -109,14 +87,12 @@
 		
 		if($btnaction=="insert")
 		{
-			
 			$codeTA = $_POST['codeTA'];
-			$nomTA = addslashes($_POST['nomTA']);
+			$nomTA = $_POST['nomTA'];
 			$stat = "ON";
 			
 			//Vérifier si le même code n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM typearticle WHERE codeTypeA='$codeTA'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM typearticle WHERE codeTypeA = :code", [':code' => $codeTA]);
 			if(!empty($result))
 			{
 				$msg = "Code déjà attribué à une catégorie!<br>Créez-en un autre.";
@@ -125,13 +101,12 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("INSERT INTO typearticle 
+				$success = SQLExecute("INSERT INTO typearticle 
 										(codeTypeA, designationTypeA, statutTypeA) 
-										VALUES(:code, :nom, :stat)
-										");
-				$sql->EXECUTE(array('code' => $codeTA, 'nom' => $nomTA, 'stat' => $stat));
+										VALUES(:code, :nom, :stat)",
+										['code' => $codeTA, 'nom' => $nomTA, 'stat' => $stat]);
 				
-				if($sql)
+				if($success)
 				{
 					$msg="Catégorie créée avec succès!";
 					$classmsg = "alert alert-success";
@@ -154,12 +129,12 @@
 		}
 		else
 		{
-			$nomTA = addslashes($_POST['nomTA']);
+			$nomTA = $_POST['nomTA'];
 			
-			$sql = $bdd->db->PREPARE("UPDATE typearticle SET designationTypeA=:nom WHERE codeTypeA=:getcode");
-			$sql->EXECUTE(array('nom'=>$nomTA,'getcode'=>$getcode));
+			$success = SQLExecute("UPDATE typearticle SET designationTypeA=:nom WHERE codeTypeA=:getcode",
+			['nom'=>$nomTA,'getcode'=>$getcode]);
 			
-			if($sql)
+			if($success)
 			{
 				$msg="Catégorie modifiée avec succès!";
 				$classmsg = "alert alert-success";
@@ -198,21 +173,17 @@
 	$numligne = ($pactu*$parpage)-$parpage+1;	
 	$first = ($pactu-1)*$parpage;
 	
-	
 	if(isset($_POST['btnresearch']))
 	{
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM typearticle LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM typearticle WHERE codeTypeA LIKE '%$rech%' OR designationTypeA LIKE '%$rech%' LIMIT $first, $parpage";
 			$tableau = "rechercher";
 		}
-		
 	}
 	
 	ob_start();
@@ -274,14 +245,13 @@
 	</div>
 	
 	<?php
-		$sqlentier = "SELECT * FROM typearticle LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$categ = SQLSelect($sqlentier);
+			$categ = SQLSelect("SELECT * FROM typearticle LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$categ = SQLSelect($sqlrech);
+			$categ = SQLSelect("SELECT * FROM typearticle WHERE codeTypeA LIKE :rech OR designationTypeA LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	
@@ -330,7 +300,7 @@
 									<tr>
 										<td><?= $numligne++;?></td>
 										<td><?= $cat->codeTypeA; ?></td>
-										<td><?= stripslashes($cat->designationTypeA) ?></td>
+										<td><?= $cat->designationTypeA ?></td>
 										<td>
 											<a href="majtypearticle.php?action=edit&code=<?= $cat->codeTypeA; ?>">
 												<button class='btn bg-orange'>EDITER</button>

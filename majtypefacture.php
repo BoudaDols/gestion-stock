@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J des catégories de factures";
 	$pagestitle = "Mise à jour des catégories de factures"; // A remplacer après
@@ -22,8 +21,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM typefacture";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM typefacture");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -33,11 +32,10 @@
 		
 		if($getaction=="edit")
 		{
-			$sqledit = "SELECT * FROM typefacture WHERE codeTypeF='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM typefacture WHERE codeTypeF = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$codeTF = $getcode;
-				$nomTF = stripslashes($edit->designationTypeF);
+				$nomTF = $edit->designationTypeF;
 			endforeach;
 			$btnaction = "update";
 			$disabledc = "disabled";
@@ -45,42 +43,33 @@
 		}
 		elseif($getaction=="statut")
 		{
-			$sqlrechstat = "SELECT * FROM typefacture WHERE codeTypeF='$getcode'";
-			$lestats = SQLSelect($sqlrechstat);
+			$lestats = SQLSelect("SELECT * FROM typefacture WHERE codeTypeF = :code", [':code' => $getcode]);
 			foreach($lestats as $lestat):
 				$oldstat = $lestat->statutTypeF;
 			endforeach;
 			if($oldstat=="ON")
 			{
-				$sqlstat = $bdd->db->PREPARE("UPDATE typefacture SET statutTypeF=:nstat WHERE codeTypeF=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'OFF', 'getcode'=>$getcode));
+				SQLExecute("UPDATE typefacture SET statutTypeF=:nstat WHERE codeTypeF=:getcode",
+				['nstat'=>'OFF', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Catégorie desactivée!";
-					$classmsg = "alert alert-warning";
-					$action = "<br><br><br><a href='majtypefacture.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-					
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
+				$msg="Catégorie desactivée!";
+				$classmsg = "alert alert-warning";
+				$action = "<br><br><br><a href='majtypefacture.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
 				
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 			else
 			{
-				$sqlstat = $bdd->db->PREPARE("UPDATE typefacture SET statutTypeF=:nstat WHERE codeTypeF=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'ON', 'getcode'=>$getcode));
+				SQLExecute("UPDATE typefacture SET statutTypeF=:nstat WHERE codeTypeF=:getcode",
+				['nstat'=>'ON', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Catégorie activée!";
-					$classmsg = "alert alert-success";
-					$action = "<br><br><br><a href='majtypefacture.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-				
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
-				
+				$msg="Catégorie activée!";
+				$classmsg = "alert alert-success";
+				$action = "<br><br><br><a href='majtypefacture.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
+			
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 		}
 			
@@ -92,14 +81,12 @@
 		
 		if($btnaction=="insert")
 		{
-			
 			$codeTF = $_POST['codeTF'];
-			$nomTF = addslashes($_POST['nomTF']);
+			$nomTF = $_POST['nomTF'];
 			$stat = "ON";
 			
 			//Vérifier si le même code n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM typefacture WHERE codeTypeF='$codeTF'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM typefacture WHERE codeTypeF = :code", [':code' => $codeTF]);
 			if(!empty($result))
 			{
 				$msg = "Code déjà attribué à une catégorie!<br>Créez-en un autre.";
@@ -108,13 +95,12 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("INSERT INTO typefacture 
+				$success = SQLExecute("INSERT INTO typefacture 
 										(codeTypeF, designationTypeF, statutTypeF) 
-										VALUES(:code, :nom, :stat)
-										");
-				$sql->EXECUTE(array('code' => $codeTF, 'nom' => $nomTF, 'stat' => $stat));
+										VALUES(:code, :nom, :stat)",
+										['code' => $codeTF, 'nom' => $nomTF, 'stat' => $stat]);
 				
-				if($sql)
+				if($success)
 				{
 					$msg="Catégorie créée avec succès!";
 					$classmsg = "alert alert-success";
@@ -136,12 +122,12 @@
 		}
 		else
 		{
-			$nomTF = addslashes($_POST['nomTF']);
+			$nomTF = $_POST['nomTF'];
 			
-			$sql = $bdd->db->PREPARE("UPDATE typefacture SET designationTypeF=:nom WHERE codeTypeF=:getcode");
-			$sql->EXECUTE(array('nom'=>$nomTF,'getcode'=>$getcode));
+			$success = SQLExecute("UPDATE typefacture SET designationTypeF=:nom WHERE codeTypeF=:getcode",
+			['nom'=>$nomTF,'getcode'=>$getcode]);
 			
-			if($sql)
+			if($success)
 			{
 				$msg="Catégorie modifiée avec succès!";
 				$classmsg = "alert alert-success";
@@ -180,21 +166,17 @@
 	$numligne = ($pactu*$parpage)-$parpage+1;	
 	$first = ($pactu-1)*$parpage;
 	
-	
 	if(isset($_POST['btnresearch']))
 	{
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM typefacture LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM typefacture WHERE codeTypeF LIKE '%$rech%' OR designationTypeF LIKE '%$rech%' LIMIT $first, $parpage";
 			$tableau = "rechercher";
 		}
-		
 	}
 	
 	ob_start();
@@ -256,14 +238,13 @@
 	</div>
 	
 	<?php
-		$sqlentier = "SELECT * FROM typefacture LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$categ = SQLSelect($sqlentier);
+			$categ = SQLSelect("SELECT * FROM typefacture LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$categ = SQLSelect($sqlrech);
+			$categ = SQLSelect("SELECT * FROM typefacture WHERE codeTypeF LIKE :rech OR designationTypeF LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	
@@ -312,7 +293,7 @@
 									<tr>
 										<td><?= $numligne++;?></td>
 										<td><?= $cat->codeTypeF; ?></td>
-										<td><?= stripslashes($cat->designationTypeF) ?></td>
+										<td><?= $cat->designationTypeF ?></td>
 										<td>
 											<a href="majtypefacture.php?action=edit&code=<?= $cat->codeTypeF; ?>">
 												<button class='btn bg-orange'>EDITER</button>

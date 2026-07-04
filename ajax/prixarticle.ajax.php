@@ -1,18 +1,18 @@
 ﻿<?php
-	require_once('../php/fonction.php');
+	require_once(__DIR__ . '/../php/fonction.php');
 	
 	if(isset($_POST['idArt']))
 	{
 		$postart = $_POST['idArt'];
-		$req = "SELECT * FROM article WHERE codeArticle = '$postart' AND statutArticle='ON'";
-		$arts = SQLSelect($req);
-		foreach($arts as $art):?>
+		$arts = SQLSelect("SELECT * FROM article WHERE codeArticle = :code AND statutArticle='ON'", [':code' => $postart]);
+		if(!empty($arts)) {
+			foreach($arts as $art):?>
 
 			<!--quantité restante-->
 						<div class="row col-lg-4">
 							<div class="form-group">
 								<div class="input-group">
-									<input type="text" class="form-control" style="width:250px" name="designation" id="designation"  value="<?= $art->designationArticle;?>"   disabled="disabled" />
+									<input type="text" class="form-control" style="width:250px" name="designation" id="designation"  value="<?= htmlspecialchars($art->designationArticle);?>"   disabled="disabled" />
 								</div>
 							</div>
 						</div>
@@ -33,7 +33,7 @@
 								<div class="input-group">
 									<div class="input-group-addon">
 										<i class="fa fa-money"></i>
-									</div class="input-group">
+									</div>
 									<div>
 										<input type="text" class="form-control" style="width:150px" name="prix" id="prix" value="<?= $art->prixMinArticle;?>" disabled="disabled"/>
 									</div>
@@ -41,6 +41,7 @@
 							</div>
 						</div>
 						<!--Prix unitaire-->
-		<?php endforeach; 
+		<?php endforeach;
+		}
 	}
 ?>

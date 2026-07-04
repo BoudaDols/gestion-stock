@@ -1,130 +1,107 @@
 ﻿<?php
-	// session_start();
-	require_once('php/fonction.php');
-	$bdd = new DB();
+require_once('php/session.php');
+require_once('php/fonction.php');
 
-	$pagetitle = "GSF | Vente au comptant";
-	$pagestitle = "Vente au comptant"; // A remplacer après
-	$bcrumb = "Vente > Vente Comptant";
-	
-	$msg = "";
-	$classmsg = "";
-	$button = "";
+$pagetitle = "GSF | Vente au comptant";
+$pagestitle = "Vente au comptant";
+$bcrumb = "Vente > Vente Comptant";
 
-	if(isset($_POST['btnsubmit']) && explode(",",$_POST['listeart'])[0]!=="")
-	{//Vérifier si le panier contient un article
-		if(isset($_POST['tva']))
-		{//TVA appliquée ou pas????
-			$tva=1;
-		}
-		else
-		{
-			$tva=0;
-		}
-		$ref = refFact();
-		$typef = "COMPTANT";
-		$modalite = "COMPTANT";
-		$listeart = explode(",",$_POST['listeart']);
-		$listeprix = explode(",",$_POST['listeprix']);
-		$listeqte = explode(",",$_POST['listeqte']);
-		$listetot = explode(",",$_POST['listetot']);
-		$client = $_POST['client'];
-		$typerem = $_POST['typerem'];
-		$cmd = addslashes($_POST['numcmd']);
-		
-		$false = 0;//compter le nombre de fois où ya mauvaise qté
-		for($i=0;$i<count($listeart);$i++)
-		{//comparer la qté en stock à la qté vendue
-			$k = getCodeArt($listeart[$i]);
-			if($listeqte[$i]>getQte($k))
-			{
-				$false = $false +1;
-			}
-		}
-		
-		if($false<>0)
-		{
-			$msg = "Quantités incorrectes!<br>Quantité 
-			vendue supérieure à la quantité en stock.<br> <input type='button' 
-			value='Retour' class='btn btn-info' onClick='history.back()'";
-			$classmsg = "alert alert-danger";
-			$button = "<button type='button' class='close' data-dismiss='alert' 
-			aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
-		}
-		else
-		{
-			if($typerem=="fixe")
-			{//type de remise: montant fixe
-				if($_POST['remise']=="")
-				{
-					$remise = 0;
-				}
-				else
-				{
-					$remise = $_POST['remise'];
-				}
-			}
-			else
-			{//type de remise: pourcentage applicable sur le total de la facture
-				if($_POST['remise']=="")
-				{
-					$remise = 0;
-				}
-				else
-				{
-						$tot=0;
-						for($i=0;$i<count($listetot);$i++)
-						{//calculer le total pour déterminer la remise
-							$tot+= $listetot[$i];
-						}
-						$remise = round(($tot*$_POST['remise'])/100);
-				}
-			}
-			$mtTT=0;
-			$objet = 'Règlement Facture comptant';
-			$tatus = 'CD';
-			for($i=0;$i<count($listeart);$i++)
-			{//créer la facture et maj les qtés en stock des articles vendus
-				//création de la facture
-				$k = getCodeArt($listeart[$i]);;
-				$ligne = ($i+1)*100;
-				$fact = $bdd->db->PREPARE("INSERT INTO facture (codeFacture,dateFacture,statutFacture,
-				quantiteAFacture,solvabiliteFacture,prixVenteFacture,nbRegFacture,remiseFacture,
-				ligneFacture,tvaFacture,totalFacture,cmdFacture,facture_codeModalite,facture_codeTypeF,facture_codeClient,
-				facture_codeArticle) 
-				VALUES(:codef,:datef,:stat,:qtef,:solvf,:prixf,:regf,:remisef,:lignef,:tva,:totf,:cmd,
-				:modalite,:codetypef,:codec,:codea)");
-				$fact->EXECUTE(array('codef'=>$ref,'datef'=>date("Y-m-d"),'stat'=>0,'qtef'=>$listeqte[$i],
-				'solvf'=>0,'prixf'=>$listeprix[$i],'regf'=>1,'remisef'=>$remise,'lignef'=>$ligne,'tva'=>$tva,
-				'totf'=>$listetot[$i],'cmd'=>$cmd,'modalite'=>$modalite,'codetypef'=>$typef,'codec'=>$client,'codea'=>$k));
+$msg = "";
+$classmsg = "";
+$button = "";
 
-				//maj des qté en stock
-				$nqte = getQte($k) - $listeqte[$i];
-				$qte = $bdd->db->PREPARE("UPDATE article SET qteStockArticle=:nqte 
-				WHERE codeArticle=:code");
-				$qte->EXECUTE(array('nqte'=>$nqte,'code'=>$k));
-				$mtTT+= ($listeqte[$i] * $listeprix[$i]);	
+if (isset($_POST['btnsubmit']) && explode(",", $_POST['listeart'])[0] !== "") {
+    $tva = isset($_POST['tva']) ? 1 : 0;
 
-			}
-			
-			if ($tva==1) {
-				$mtTT += ($mtTT*18)/100;
-			}
-			$mtTT-=$remise;
-			//insertion dans reglement
-			$regl = $bdd->db->PREPARE("INSERT INTO reglement (dateReglement,montantReglement,objetReglement,statutReglement,reglement_codeFacture)
-			VALUES(:datef,:mtTT,:objet,:status,:codeF)");
-			$regl->EXECUTE(array('datef'=>date("Y-m-d"),'mtTT'=>$mtTT,'objet'=>$objet,'status'=>$tatus,'codeF'=>$ref));
+    $ref = refFact();
+    $typef = "COMPTANT";
+    $modalite = "COMPTANT";
+    $listeart = explode(",", $_POST['listeart']);
+    $listeprix = explode(",", $_POST['listeprix']);
+    $listeqte = explode(",", $_POST['listeqte']);
+    $listetot = explode(",", $_POST['listetot']);
+    $client = $_POST['client'];
+    $typerem = $_POST['typerem'];
+    $cmd = $_POST['numcmd'] ?? '';
 
-			$msg="Vente effectuée avec succès!";
-			/*<a href=./caissecomptant.php> Encaisser la facture Ici</a> "*/
-			$classmsg = "alert alert-success";
-			$button = "<button type='button' class='close' data-dismiss='alert' 
-			aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
-			echo "<script language='JavaScript'>window.open('popupticket.php?ref=".$ref."','_blank','width=200, height=100');</script>";
-		}
-	}
-	ob_start();
+    $false = 0;
+    for ($i = 0; $i < count($listeart); $i++) {
+        $k = getCodeArt($listeart[$i]);
+        if ($listeqte[$i] > getQte($k)) {
+            $false++;
+        }
+    }
+
+    if ($false != 0) {
+        $msg = "Quantités incorrectes!<br>Quantité 
+        vendue supérieure à la quantité en stock.<br> <input type='button' 
+        value='Retour' class='btn btn-info' onClick='history.back()'";
+        $classmsg = "alert alert-danger";
+        $button = "<button type='button' class='close' data-dismiss='alert' 
+        aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
+    } else {
+        if ($typerem == "fixe") {
+            $remise = ($_POST['remise'] !== "") ? (float) $_POST['remise'] : 0;
+        } else {
+            if ($_POST['remise'] == "") {
+                $remise = 0;
+            } else {
+                $tot = 0;
+                for ($i = 0; $i < count($listetot); $i++) {
+                    $tot += $listetot[$i];
+                }
+                $remise = round(($tot * $_POST['remise']) / 100);
+            }
+        }
+
+        $mtTT = 0;
+        $objet = 'Règlement Facture comptant';
+        $tatus = 'CD';
+
+        for ($i = 0; $i < count($listeart); $i++) {
+            $k = getCodeArt($listeart[$i]);
+            $ligne = ($i + 1) * 100;
+
+            SQLExecute("INSERT INTO facture (codeFacture, dateFacture, statutFacture,
+                quantiteAFacture, solvabiliteFacture, prixVenteFacture, nbRegFacture, remiseFacture,
+                ligneFacture, tvaFacture, totalFacture, cmdFacture, facture_codeModalite, facture_codeTypeF,
+                facture_codeClient, facture_codeArticle) 
+                VALUES (:codef, :datef, :stat, :qtef, :solvf, :prixf, :regf, :remisef, :lignef, :tva,
+                :totf, :cmd, :modalite, :codetypef, :codec, :codea)", [
+                ':codef' => $ref, ':datef' => date("Y-m-d"), ':stat' => 0,
+                ':qtef' => $listeqte[$i], ':solvf' => 0, ':prixf' => $listeprix[$i],
+                ':regf' => 1, ':remisef' => $remise, ':lignef' => $ligne, ':tva' => $tva,
+                ':totf' => $listetot[$i], ':cmd' => $cmd, ':modalite' => $modalite,
+                ':codetypef' => $typef, ':codec' => $client, ':codea' => $k
+            ]);
+
+            $nqte = getQte($k) - $listeqte[$i];
+            SQLExecute("UPDATE article SET qteStockArticle = :nqte WHERE codeArticle = :code", [
+                ':nqte' => $nqte, ':code' => $k
+            ]);
+
+            $mtTT += ($listeqte[$i] * $listeprix[$i]);
+        }
+
+        if ($tva == 1) {
+            $mtTT += ($mtTT * 18) / 100;
+        }
+        $mtTT -= $remise;
+
+        SQLExecute("INSERT INTO reglement (dateReglement, montantReglement, objetReglement, statutReglement, reglement_codeFacture)
+            VALUES (:datef, :mtTT, :objet, :status, :codeF)", [
+            ':datef' => date("Y-m-d"), ':mtTT' => $mtTT, ':objet' => $objet,
+            ':status' => $tatus, ':codeF' => $ref
+        ]);
+
+        $msg = "Vente effectuée avec succès!";
+        $classmsg = "alert alert-success";
+        $button = "<button type='button' class='close' data-dismiss='alert' 
+        aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
+        echo "<script language='JavaScript'>window.open('popupticket.php?ref=" . urlencode($ref) . "','_blank','width=200, height=100');</script>";
+    }
+}
+ob_start();
 ?>
 
 <script type="text/javascript">
@@ -414,8 +391,7 @@
 								<i class="fa fa-barcode"></i>
 							</div>
 							<?php
-								$sql="SELECT * FROM article WHERE statutArticle='ON'";
-								$arts=SQLSelect($sql);
+								$arts = SQLSelect("SELECT * FROM article WHERE statutArticle = 'ON'");
 							?>
 							<input class="form-control" type="text" style="width:400px" name="codeA" id="codeA" required list="urlarticle" autocomplete="off"  onchange="onInput()">
 								<datalist id="urlarticle">
@@ -512,8 +488,7 @@
 											<i class="fa fa-barcode"></i>
 										</div>
 										<?php
-											$sql="SELECT * FROM client WHERE statutClient='ON'";
-											$clients=SQLSelect($sql);
+											$clients = SQLSelect("SELECT * FROM client WHERE statutClient = 'ON'");
 										?>
 										<select class="form-control" type="text" style="width:200px" name="client" id="client" <?=$disabled;?> >
 											<option value="0">Tiers</option>

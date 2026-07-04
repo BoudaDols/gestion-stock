@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$sql = "SELECT * FROM article WHERE statutArticle='ON' AND seuilArticle>=qteStockArticle";
 	$arts = SQLSelect($sql);

@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Rebut des articles";
 	$pagestitle = "Mise au rebut des articles"; // A remplacer après
@@ -11,7 +10,7 @@
 	$btnaction = "insert";
 	$disabledc = ""; //Sert à griser le code pour update
 	$disabled = ""; //Sert à griser les champs après insert ou update
-	$tableau = "entier"; //Différencier l'?age du tableau: si tout le tableau ou une recherche
+	$tableau = "entier"; //Différencier l'affichage du tableau: si tout le tableau ou une recherche
 	$msg = "";
 	$classmsg = "";
 	$button = "";
@@ -19,8 +18,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM rebus";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM rebus");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -29,11 +28,10 @@
 		$getcode = $_GET['code'];
 		$getart = $_GET['art'];
 		
-		if($getaction=="cancel")//
+		if($getaction=="cancel")
 		{
 			//réajuster la qté en stock de l'article
-			$sql = "SELECT * FROM rebus WHERE idRebus='$getcode'";
-			$rebuts = SQLSelect($sql);
+			$rebuts = SQLSelect("SELECT * FROM rebus WHERE idRebus = :id", [':id' => $getcode]);
 			if(!empty($rebuts))
 			{
 				foreach($rebuts as $rebut)
@@ -44,12 +42,11 @@
 			$qteStock = getQte($getart) + $qterebut;
 			
 			//annulation de la mise au rebut de l'article
-			$delete = $bdd->db->PREPARE("DELETE FROM rebus WHERE idRebus=:idR");
-			$delete->EXECUTE(array('idR'=>$getcode));
+			SQLExecute("DELETE FROM rebus WHERE idRebus = :idR", [':idR' => $getcode]);
 			
 			//mettre à jour la qté en stock de l'article
-			$update = $bdd->db->PREPARE("UPDATE article SET qteStockArticle=:nqte WHERE codeArticle=:codeart");
-			$update->EXECUTE(array('nqte'=>$qteStock, 'codeart'=>$getart));
+			SQLExecute("UPDATE article SET qteStockArticle = :nqte WHERE codeArticle = :codeart", 
+				[':nqte' => $qteStock, ':codeart' => $getart]);
 			
 			$msg="Mise au rebut annulé!";
 			$classmsg = "alert alert-success";
@@ -58,7 +55,6 @@
 			
 			$disabledc = "disabled";
 			$disabled = "disabled";
-			
 		}
 	}
 	
@@ -84,15 +80,14 @@
 			}
 			else
 			{
-				
 				$nqteStock = $qteStock - $qte;
 				
-				$updateart = $bdd->db->PREPARE("UPDATE article SET qteStockArticle=:nqte WHERE codeArticle=:code");
-				$updateart->EXECUTE(array('nqte'=>$nqteStock,'code'=>$codeart));
+				SQLExecute("UPDATE article SET qteStockArticle = :nqte WHERE codeArticle = :code", 
+					[':nqte' => $nqteStock, ':code' => $codeart]);
 				
-				$sql = $bdd->db->PREPARE("INSERT INTO rebus (quantiteARebus,dateRebus,motifRebus,rebus_codeArticle) 
-									VALUES (:qte,:date,:motif,:art)");
-				$sql->EXECUTE(array('qte'=>$qte,'date'=>date("Y-m-d"),'motif'=>$motif,'art'=>$codeart));
+				SQLExecute("INSERT INTO rebus (quantiteARebus,dateRebus,motifRebus,rebus_codeArticle) 
+									VALUES (:qte,:date,:motif,:art)", 
+					[':qte' => $qte, ':date' => date("Y-m-d"), ':motif' => $motif, ':art' => $codeart]);
 				
 				$msg="Artilce mis au rebut avec succès!";
 				$classmsg = "alert alert-success";
@@ -121,17 +116,17 @@
 	$numligne = ($pactu*$parpage)-$parpage+1;	
 	$first = ($pactu-1)*$parpage;
 	
+	$sqlrech = "";
 	if(isset($_POST['btnresearch']))
 	{
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM rebus LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM rebus WHERE rebus_codeArticle LIKE '%$rech%' LIMIT $first, $parpage";
+			$sqlrech = $rech;
 			$tableau = "rechercher";
 		}
 	}
@@ -204,16 +199,15 @@
 									<i class="fa fa-barcode"></i>
 								</div>
 								<?php
-									$sql="SELECT * FROM typearticle WHERE statutTypeA='ON'";
-									$tarts=SQLSelect($sql);
+									$tarts = SQLSelect("SELECT * FROM typearticle WHERE statutTypeA='ON'");
 								?>
 								<select class="form-control" type="text" style="width:400px" name="codeTA" id="codeTA" onChange="article()" <?=$disabled;?> >
 									<option value="-1">Choisir une catégorie</option>
-									<?php foreach ($tarts as $tart):?>
+									<?php if(!empty($tarts)): foreach ($tarts as $tart):?>
 										<option value="<?=$tart->codeTypeA;?>">
 											<?=$tart->designationTypeA;?>
 										</option>
-									<?php endforeach;?>
+									<?php endforeach; endif;?>
 								</select>
 							</div>
 						</div>
@@ -279,14 +273,14 @@
 	
 	<!-- tableau-->
 	<?php
-		$sqlentier = "SELECT * FROM rebus LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$rebuts = SQLSelect($sqlentier);
+			$rebuts = SQLSelect("SELECT * FROM rebus LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$rebuts = SQLSelect($sqlrech);
+			$rebuts = SQLSelect("SELECT * FROM rebus WHERE rebus_codeArticle LIKE :rech LIMIT :offset, :limit", 
+				[':rech' => "%{$sqlrech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	

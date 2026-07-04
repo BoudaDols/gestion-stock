@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J des modalités";
 	$pagestitle = "Mise à jour des modalités"; // A remplacer après
@@ -22,8 +21,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM modalite";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM modalite");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -33,8 +32,7 @@
 		
 		if($getaction=="edit")
 		{
-			$sqledit = "SELECT * FROM modalite WHERE codeModalite='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM modalite WHERE codeModalite = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$codeM = $getcode;
 				$periodeM = $edit->periodiciteModalite;
@@ -56,8 +54,7 @@
 			$stat = "ON";
 			
 			//Vérifier si le même code n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM modalite WHERE codeModalite='$codeM'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM modalite WHERE codeModalite = :code", [':code' => $codeM]);
 			if(!empty($result))
 			{
 				$msg = "Code déjà attribué à une modalité!<br>Créez-en un autre.";
@@ -66,12 +63,11 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("INSERT INTO modalite 
+				$success = SQLExecute("INSERT INTO modalite 
 										(codeModalite, periodiciteModalite) 
-										VALUES(:code, :periode)
-										");
-				$sql->EXECUTE(array('code' => $codeM, 'periode' => $periodeM));
-				if($sql)
+										VALUES(:code, :periode)",
+										['code' => $codeM, 'periode' => $periodeM]);
+				if($success)
 				{
 					$msg="Modalité créée avec succès!";
 					$classmsg = "alert alert-success";
@@ -96,10 +92,10 @@
 		{
 			$periodeM = $_POST['periodeM'];
 			
-			$sql = $bdd->db->PREPARE("UPDATE modalite SET periodiciteModalite=:periode
-									WHERE codeModalite=:getcode");
-			$sql->EXECUTE(array('periode'=>$periodeM,'getcode'=>$getcode));
-			if($sql)
+			$success = SQLExecute("UPDATE modalite SET periodiciteModalite=:periode
+									WHERE codeModalite=:getcode",
+									['periode'=>$periodeM,'getcode'=>$getcode]);
+			if($success)
 			{
 				$msg="Modalité modifiée avec succès!";
 				$classmsg = "alert alert-success";
@@ -143,15 +139,12 @@
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM modalite LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM modalite WHERE codeModalite LIKE '%$rech%' OR periodiciteModalite LIKE '%$rech%' LIMIT $first, $parpage";
 			$tableau = "rechercher";
 		}
-		
 	}
 	
 	ob_start();
@@ -213,14 +206,13 @@
 	</div>
 	
 	<?php
-		$sqlentier = "SELECT * FROM modalite LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$modalites = SQLSelect($sqlentier);
+			$modalites = SQLSelect("SELECT * FROM modalite LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$modalites = SQLSelect($sqlrech);
+			$modalites = SQLSelect("SELECT * FROM modalite WHERE codeModalite LIKE :rech OR periodiciteModalite LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	

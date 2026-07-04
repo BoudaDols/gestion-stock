@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Clients";
 	$pagestitle = "Clients fidèles du mois"; // A remplacer après
@@ -13,12 +12,12 @@
 
 	//pagination
 	$parpage = 10;
-	$sql = "SELECT sum(r.montantReglement) tot, count(r.reglement_codeFacture) nbreachat, r.reglement_codeFacture codeF, f.facture_codeClient codeC, 			c.nomClient nomC
+	$result = SQLSelect("SELECT sum(r.montantReglement) tot, count(r.reglement_codeFacture) nbreachat, r.reglement_codeFacture codeF, f.facture_codeClient codeC, 			c.nomClient nomC
 			from reglement r, facture f, client c
-			where f.dateFacture >= '$actu1' AND f.dateFacture <= '$actu2' and r.reglement_codeFacture=f.codeFacture and f.facture_codeClient=c.codeClient
+			where f.dateFacture >= :date1 AND f.dateFacture <= :date2 and r.reglement_codeFacture=f.codeFacture and f.facture_codeClient=c.codeClient
 			group by f.facture_codeClient
-			order by tot desc";
-	$nblignes = count(SQLSelect($sql));
+			order by tot desc", [':date1' => $actu1, ':date2' => $actu2]);
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	// Navigation pagination
@@ -37,20 +36,12 @@
 	$numligne = ($pactu*$parpage)-$parpage+1;	
 	$first = ($pactu-1)*$parpage;
 	$numligne = 1;
-	$sql = "SELECT sum(r.montantReglement) tot, count(r.reglement_codeFacture) nbreachat, r.reglement_codeFacture codeF, f.facture_codeClient codeC, 			c.nomClient nomC
+	$articles = SQLSelect("SELECT sum(r.montantReglement) tot, count(r.reglement_codeFacture) nbreachat, r.reglement_codeFacture codeF, f.facture_codeClient codeC, 			c.nomClient nomC
 			from reglement r, facture f, client c
-			where f.dateFacture >= '$actu1' AND f.dateFacture <= '$actu2' and r.reglement_codeFacture=f.codeFacture and f.facture_codeClient=c.codeClient
+			where f.dateFacture >= :date1 AND f.dateFacture <= :date2 and r.reglement_codeFacture=f.codeFacture and f.facture_codeClient=c.codeClient
 			group by f.facture_codeClient
 			order by tot desc
-			LIMIT $first, $parpage";
-
-			/*SELECT f.dateFacture dte, f.facture_codeArticle code, sum(f.quantiteAFacture) qte, a.designationArticle design
-			FROM facture f, article a
-			WHERE f.dateFacture >= '$actu1' AND f.dateFacture <= '$actu2' AND f.facture_codeArticle=a.codeArticle 
-			GROUP BY a.designationArticle
-			ORDER BY qte DESC
-			LIMIT 10*/
-	$articles = SQLSelect($sql);
+			LIMIT :offset, :limit", [':date1' => $actu1, ':date2' => $actu2, ':offset' => $first, ':limit' => $parpage]);
 ?>
 
 	<div class="row col-lg-12">

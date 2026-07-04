@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Alertes Stock";
 	$pagestitle = "Produits les plus vendus"; // A remplacer après
@@ -13,13 +12,12 @@
 	$numligne = 1;
 	$actu1 = date('Y-m-01');
 	$actu2 = date('Y-m-31');
-	$sql = "SELECT f.dateFacture dte, f.facture_codeArticle code, sum(f.quantiteAFacture) qte, a.designationArticle design
+	$articles = SQLSelect("SELECT f.dateFacture dte, f.facture_codeArticle code, sum(f.quantiteAFacture) qte, a.designationArticle design
 			FROM facture f, article a
-			WHERE f.dateFacture >= '$actu1' AND f.dateFacture <= '$actu2' AND f.facture_codeArticle=a.codeArticle 
+			WHERE f.dateFacture >= :date1 AND f.dateFacture <= :date2 AND f.facture_codeArticle=a.codeArticle 
 			GROUP BY a.designationArticle
 			ORDER BY qte DESC
-			LIMIT 10";
-	$articles = SQLSelect($sql);
+			LIMIT 10", [':date1' => $actu1, ':date2' => $actu2]);
 ?>
 
 	<div class="row col-lg-12">
@@ -29,11 +27,6 @@
 				<h3 class="box-title">Produits les plus vendus</h3>
 			</div>
 			<div class="box-body">
-				<!--div class="pull-right">
-					<button onclick="javascript:popup_stockepuis();" class="btn btn-primary">
-						Générer <i class="fa fa-eye"></i>
-					</button>
-				</div><br /><br /-->
 				<table class="table table-bordered" name="tabstockepuis" id="tabstockepuis">
 					<thead>
 						<tr>

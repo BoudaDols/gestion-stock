@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Etat des dépenses journalières";
 	$pagestitle = "Etat des dépenses journalières"; // A remplacer après
@@ -11,8 +10,8 @@
 	
 	//pagination
 	$parpage = 5;
-	$sql = "SELECT * FROM reglement WHERE statutReglement='D' AND dateReglement='$actu'";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM reglement WHERE statutReglement='D' AND dateReglement = :actu", [':actu' => $actu]);
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	// Navigation pagination
@@ -34,9 +33,8 @@
 	ob_start();
 ?>
 <?php
-	$sqlr = "SELECT * FROM reglement WHERE statutReglement='D' 
-	AND dateReglement='$actu' LIMIT $first, $parpage";
-	$regl = SQLSelect($sqlr);
+	$regl = SQLSelect("SELECT * FROM reglement WHERE statutReglement='D' 
+	AND dateReglement = :actu LIMIT :offset, :limit", [':actu' => $actu, ':offset' => $first, ':limit' => $parpage]);
 ?>
 
 	<div class="row col-lg-12">

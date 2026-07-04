@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$frss = SQLSelect("SELECT * FROM fournisseur WHERE statutFournisseur='ON' ORDER BY codeFournisseur");
 	$nl = 1;

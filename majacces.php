@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 
 	$pagetitle = "GSF | Privilèges Accès";
 	$pagestitle = "MAJ  des privilèges d'accès"; // A remplacer après
@@ -19,10 +18,8 @@
 		
 		$type = $_POST['compte'];
 		
-		$reqminus = "SELECT * FROM access, menuitem WHERE access_codeSousMenu=codeSousMenu AND access_codeCompte='$type'";
-		$reqplus = "SELECT * FROM menuitem WHERE codeSousMenu NOT IN (SELECT codeSousMenu FROM menuitem, access WHERE access_codeSousMenu=codeSousMenu AND access_codeCompte='$type')";
-		$plus = SQLSelect($reqplus);
-		$minus = SQLSelect($reqminus);
+		$minus = SQLSelect("SELECT * FROM access, menuitem WHERE access_codeSousMenu=codeSousMenu AND access_codeCompte = :type", [':type' => $type]);
+		$plus = SQLSelect("SELECT * FROM menuitem WHERE codeSousMenu NOT IN (SELECT codeSousMenu FROM menuitem, access WHERE access_codeSousMenu=codeSousMenu AND access_codeCompte = :type)", [':type' => $type]);
 	}
 	
 	if(isset($_GET['action']) && !empty($_GET['action']))
@@ -38,8 +35,8 @@
 					$itemadd = $_GET['plus'];
 					$tcompteadd = $_GET['tc'];
 					
-					$grant = $bdd->db->prepare('INSERT INTO access (access_codeCompte, access_codeSousMenu) VALUES (:typecompte,:item)');
-					$grant->execute(array('typecompte'=>$tcompteadd, 'item'=>$itemadd));
+					SQLExecute("INSERT INTO access (access_codeCompte, access_codeSousMenu) VALUES (:typecompte,:item)",
+					['typecompte'=>$tcompteadd, 'item'=>$itemadd]);
 					header("location:majacces.php");
 				}
 				else
@@ -57,8 +54,8 @@
 					$iteminus = $_GET['minus'];
 					$tcompteminus = $_GET['tc'];
 					
-					$revoke = $bdd->db->prepare('DELETE FROM access WHERE access_codeCompte=:typecompte AND access_codeSousMenu=:item');
-					$revoke->execute(array('typecompte'=>$tcompteminus, 'item'=>$iteminus));
+					SQLExecute("DELETE FROM access WHERE access_codeCompte=:typecompte AND access_codeSousMenu=:item",
+					['typecompte'=>$tcompteminus, 'item'=>$iteminus]);
 					header("location:majacces.php");
 				}
 				else
@@ -75,8 +72,7 @@
 	
 	<form role="form" class="form-inline" name="majaccess"  action="" method="post">
 		<?php
-			$reqtype = "SELECT * FROM compte";
-			$types = SQLSelect($reqtype);
+			$types = SQLSelect("SELECT * FROM compte");
 		?>
 		<div class="row">
 			<label for="type">Type de compte</label>

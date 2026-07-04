@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$arts = SQLSelect("SELECT * FROM typearticle WHERE statutTypeA='ON' ORDER BY codeTypeA");
 	$nl = 1;
