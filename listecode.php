@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Codes et Etat du stock";
 	$pagestitle = " Codes et Etat du stock"; // A remplacer après
@@ -23,7 +22,7 @@
 						<div class="small-box bg-aqua">
 							<div class="inner">
 								<h3>
-									<?=Count(SQLSelect("SELECT * FROM article WHERE statutArticle='ON'"));?>
+									<?php $r = SQLSelect("SELECT * FROM article WHERE statutArticle = :statut", [':statut' => 'ON']); echo $r ? count($r) : 0; ?>
 								</h3>
 								<p>ARTICLES</p>
 							</div>
@@ -40,7 +39,7 @@
 						<div class="small-box bg-green">
 							<div class="inner">
 								<h3>
-									<?=Count(SQLSelect("SELECT * FROM typearticle WHERE statutTypeA='ON'"));?>
+									<?php $r = SQLSelect("SELECT * FROM typearticle WHERE statutTypeA = :statut", [':statut' => 'ON']); echo $r ? count($r) : 0; ?>
 								</h3>
 								<p> CATEGORIES D'ARTICLES</p>
 							</div>
@@ -57,7 +56,7 @@
 						<div class="small-box bg-yellow">
 							<div class="inner">
 								<h3>
-									<?=Count(SQLSelect("SELECT * FROM client WHERE statutClient='ON'"));?>
+									<?php $r = SQLSelect("SELECT * FROM client WHERE statutClient = :statut", [':statut' => 'ON']); echo $r ? count($r) : 0; ?>
 								</h3>
 								<p>CLIENTS</p>
 							</div>
@@ -74,7 +73,7 @@
 						<div class="small-box bg-red">
 							<div class="inner">
 								<h3>
-									<?=Count(SQLSelect("SELECT * FROM fournisseur WHERE statutFournisseur='ON'"));?>
+									<?php $r = SQLSelect("SELECT * FROM fournisseur WHERE statutFournisseur = :statut", [':statut' => 'ON']); echo $r ? count($r) : 0; ?>
 								</h3>
 								<p>FOURNISSEURS</p>
 							</div>
@@ -93,7 +92,7 @@
 						<div class="small-box bg-purple">
 							<div class="inner">
 								<h3>
-									<?=Count(SQLSelect("SELECT * FROM article WHERE statutArticle='ON'"));?>
+									<?php $r = SQLSelect("SELECT * FROM article WHERE statutArticle = :statut", [':statut' => 'ON']); echo $r ? count($r) : 0; ?>
 								</h3>
 								<p>STOCK ARTICLES</p>
 							</div>

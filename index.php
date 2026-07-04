@@ -1,45 +1,32 @@
 ﻿<?php
-	session_start();
-	require_once('php/fonction.php');
-	$bdd = new DB();
-	
-	$style = "style='display:none'";
-	$class = "";
-	$msg = "";
-	
-	if(isset($_POST['connect']))
-	{
-		$login = $_POST['login'];
-		$pwd = md5($_POST['pwd']);
-		
-		$sql = "SELECT * FROM user WHERE loginUser='$login' AND mdpUser='$pwd' AND statutCompteUser=1";
-		$repons = SQLSelect($sql);
-		
-		if(empty($repons))
-		{
-			$msg = "Login et/ou Mot de passe incorrects!       .";
-			$style = "style='display:inline'";
-			$class = "alert alert-danger";
-		}
-		else
-		{
-			// echo 'ok';exit;
-			foreach($repons as $rep):
-				$id = $rep->idUser;
-				$login = $rep->loginUser;
-				$nom = $rep->nomUser;
-				$prenom = $rep->prenomUser;
-				$tcompte = $rep->user_codeCompte;
-			endforeach;
-			$_SESSION['id'] = $id;
-			$_SESSION['user'] = $login;
-			$_SESSION['nom'] = $nom . " ".$prenom;
-			$_SESSION['compte'] = $tcompte;
-			
-			header('location:accueil.php');
-		}
-	}
+require_once('php/session.php');
+require_once('php/fonction.php');
 
+$style = "style='display:none'";
+$class = "";
+$msg = "";
+
+if (isset($_POST['connect'])) {
+    $login = trim($_POST['login']);
+
+    $sql = "SELECT * FROM user WHERE loginUser = :login AND statutCompteUser = 1";
+    $repons = SQLSelect($sql, [':login' => $login]);
+
+    if (!$repons || !password_verify($_POST['pwd'], $repons[0]->mdpUser)) {
+        $msg = "Login et/ou Mot de passe incorrects!";
+        $style = "style='display:inline'";
+        $class = "alert alert-danger";
+    } else {
+        $user = $repons[0];
+        $_SESSION['id'] = $user->idUser;
+        $_SESSION['user'] = $user->loginUser;
+        $_SESSION['nom'] = $user->nomUser . " " . $user->prenomUser;
+        $_SESSION['compte'] = $user->user_codeCompte;
+
+        header('Location: accueil.php');
+        exit;
+    }
+}
 ?>	
 	
 <!DOCTYPE html>

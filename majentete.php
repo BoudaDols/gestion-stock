@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 
 	$pagetitle = "GSF | M.A.J des infos.";
 	$pagestitle = "Mise à jour des informations"; // A remplacer après
@@ -13,30 +12,29 @@
 	$action = "";
 	$button = "";
 	
-	$sql = "SELECT * FROM entete WHERE id=1";
-	$infos = SQLSelect($sql);
+	$infos = SQLSelect("SELECT * FROM entete WHERE id = :id", [':id' => 1]);
 	foreach($infos as $info):
 		$anclogo = $info->logo;
-		$nom = stripslashes($info->nom);
-		$adresse = stripslashes($info->adresse);
-		$tel1 = stripslashes($info->tel1);
-		$tel2 = stripslashes($info->tel2);
-		$banque = stripslashes($info->banque);
-		$rccm = stripslashes($info->rccm);
-		$ifu = stripslashes($info->ifu);
+		$nom = $info->nom;
+		$adresse = $info->adresse;
+		$tel1 = $info->tel1;
+		$tel2 = $info->tel2;
+		$banque = $info->banque;
+		$rccm = $info->rccm;
+		$ifu = $info->ifu;
 	endforeach;
 	// echo "<a href='".$anclogo."'>logo</a>"; exit;
 	if(isset($_POST['btnsubmit']))
 	{
 		$tmp = $_FILES['logo']['tmp_name'];
 		$name = $_FILES['logo']['name'];
-		$nom = addslashes($_POST['nom']);
-		$adresse = addslashes($_POST['adresse']);
-		$tel1 = addslashes($_POST['tel1']);
-		$tel2 = addslashes($_POST['tel2']);
-		$banque = addslashes($_POST['banque']);
-		$rccm = addslashes($_POST['rccm']);
-		$ifu = addslashes($_POST['ifu']);
+		$nom = $_POST['nom'];
+		$adresse = $_POST['adresse'];
+		$tel1 = $_POST['tel1'];
+		$tel2 = $_POST['tel2'];
+		$banque = $_POST['banque'];
+		$rccm = $_POST['rccm'];
+		$ifu = $_POST['ifu'];
 		
 		$exts = ['jpg','jpeg','png','gif'];
 		$ext = substr($name,strripos($name,'.')+1);
@@ -59,10 +57,10 @@
 				{
 					if(move_uploaded_file($tmp, $dest))
 					{
-						$req = $bdd->db->PREPARE("UPDATE entete SET logo=:logo,nom=:nom,adresse=:adr,tel1=:tel1,
-						tel2=:tel2,banque=:bank,rccm=:rccm,ifu=:ifu WHERE id=:id");
-						$req->EXECUTE(ARRAY('logo'=>$dest,'nom'=>$nom,'adr'=>$adresse,'tel1'=>$tel1,
-						'tel2'=>$tel2,'bank'=>$banque,'rccm'=>$rccm,'ifu'=>$ifu,'id'=>1));
+						SQLExecute("UPDATE entete SET logo=:logo,nom=:nom,adresse=:adr,tel1=:tel1,
+						tel2=:tel2,banque=:bank,rccm=:rccm,ifu=:ifu WHERE id=:id",
+						['logo'=>$dest,'nom'=>$nom,'adr'=>$adresse,'tel1'=>$tel1,
+						'tel2'=>$tel2,'bank'=>$banque,'rccm'=>$rccm,'ifu'=>$ifu,'id'=>1]);
 						
 						$msg = "Informations mises à jour!";
 						$classmsg = "alert alert-success";
@@ -89,10 +87,10 @@
 			{
 				if(move_uploaded_file($tmp, $dest))
 				{
-					$req = $bdd->db->PREPARE("UPDATE entete SET logo=:logo,nom=:nom,adresse=:adr,tel1=:tel1,
-					tel2=:tel2,banque=:bank,rccm=:rccm,ifu=:ifu WHERE id=:id");
-					$req->EXECUTE(ARRAY('logo'=>$dest,'nom'=>$nom,'adresse'=>$adresse,'tel1'=>$tel1,
-					'tel2'=>$tel2,'bank'=>$banque,'rccm'=>$rccm,'ifu'=>$ifu));
+					SQLExecute("UPDATE entete SET logo=:logo,nom=:nom,adresse=:adr,tel1=:tel1,
+					tel2=:tel2,banque=:bank,rccm=:rccm,ifu=:ifu WHERE id=:id",
+					['logo'=>$dest,'nom'=>$nom,'adr'=>$adresse,'tel1'=>$tel1,
+					'tel2'=>$tel2,'bank'=>$banque,'rccm'=>$rccm,'ifu'=>$ifu,'id'=>1]);
 					
 					$msg = "Informations mises à jour!";
 					$classmsg = "alert alert-success";

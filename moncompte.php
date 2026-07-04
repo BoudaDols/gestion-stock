@@ -1,7 +1,6 @@
 ﻿<?php
-	session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Mon profil";
 	$pagestitle = "Informations personnelles"; // A remplacer après
@@ -13,17 +12,14 @@
 
 	if(isset($_POST['btnsubmit']))
 	{
-		$passe = md5($_POST['mdpasse']);
-		$sql = $bdd->db->PREPARE("UPDATE user SET mdpUser=:mdp 
-		WHERE loginUser=:login");
-		$sql->EXECUTE(array('mdp'=>$passe,'login'=>$_SESSION['user']));
-		if($sql)
-		{
-			$msg = "Mot de passe modifié!";
-			$classmsg = "alert alert-success";
-			$button = "<button type='button' class='close' data-dismiss='alert' 
-			aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
-		}
+		$passe = password_hash($_POST['mdpasse'], PASSWORD_DEFAULT);
+		SQLExecute("UPDATE user SET mdpUser=:mdp WHERE loginUser=:login",
+		['mdp'=>$passe,'login'=>$_SESSION['user']]);
+		
+		$msg = "Mot de passe modifié!";
+		$classmsg = "alert alert-success";
+		$button = "<button type='button' class='close' data-dismiss='alert' 
+		aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
 	}
 	
 	ob_start();

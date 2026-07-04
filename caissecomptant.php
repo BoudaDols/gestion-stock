@@ -1,40 +1,35 @@
 <?php
-	// session_start();
-	require_once('php/fonction.php');
-	$bdd = new DB();
-	
-	$pagetitle = "GSF | Etat des ventes";
-	$pagestitle = "Etat des ventes"; // A remplacer après
-	$bcrumb = "Statistique > Liste des ventes";
-	
-	//pagination
-	$parpage = 10;
-	$sql = "SELECT * FROM reglement WHERE reglement_codeFacture!='' AND statutReglement='CD' ORDER BY dateReglement DESC " ;
-	$nblignes = count(SQLSelect($sql));
-	$nbpages = ceil($nblignes/$parpage);
-	
-	// Navigation pagination
-	if(isset($_GET['page']))
-	{
-		$pactu = intval($_GET['page']);
-		if($pactu > $nbpages)
-		{
-			$pactu = $nbpages;
-		}
-	}
-	else
-	{
-		$pactu = 1;
-	}
-	$numligne = ($pactu*$parpage)-$parpage+1;	
-	$first = ($pactu-1)*$parpage;
-	
-	ob_start();
+require_once('php/session.php');
+require_once('php/fonction.php');
+
+$pagetitle = "GSF | Etat des ventes";
+$pagestitle = "Etat des ventes";
+$bcrumb = "Statistique > Liste des ventes";
+
+//pagination
+$parpage = 10;
+$countResult = SQLSelect("SELECT * FROM reglement WHERE reglement_codeFacture != '' AND statutReglement = 'CD' ORDER BY dateReglement DESC");
+$nblignes = $countResult ? count($countResult) : 0;
+$nbpages = ceil($nblignes / $parpage);
+
+// Navigation pagination
+if (isset($_GET['page'])) {
+    $pactu = intval($_GET['page']);
+    if ($pactu > $nbpages) {
+        $pactu = $nbpages;
+    }
+} else {
+    $pactu = 1;
+}
+$numligne = ($pactu * $parpage) - $parpage + 1;
+$first = ($pactu - 1) * $parpage;
+
+ob_start();
 ?>
 <?php
-	$sqlr = "SELECT * FROM reglement WHERE reglement_codeFacture!='' AND 
-	statutReglement='CD' ORDER BY dateReglement DESC LIMIT $first, $parpage";
-	$regl = SQLSelect($sqlr);
+	$regl = SQLSelect("SELECT * FROM reglement WHERE reglement_codeFacture != '' AND 
+	statutReglement = 'CD' ORDER BY dateReglement DESC LIMIT :offset, :limit", 
+	[':offset' => $first, ':limit' => $parpage]);
 ?>
 
 	<div class="row col-lg-12">

@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Disponobilité Article";
 	$pagestitle = "Disponibilité d'un article"; // A remplacer après
@@ -11,14 +10,14 @@
 	$msg = "";
 	$classmsg = "";
 	$button = "";
+	$code = "";
+	$arts = [];
 	
 	if(isset($_POST['btnsubmit']))
 	{
 		$code = $_POST["code"];
 		
-		$sqlrech = "SELECT * FROM article WHERE codeArticle LIKE '$code'";
-		$arts = SQLSelect($sqlrech);
-		// var_dump($arts);exit;
+		$arts = SQLSelect("SELECT * FROM article WHERE codeArticle LIKE :code", [':code' => $code]);
 		if(empty($arts))
 		{
 			$msg = "Vous avez saisi un code introuvable!<br>Rassurer vous que 
@@ -76,7 +75,7 @@
 		<div class="box box-primary">
 			<div class="box-header">
 				<i class="fa fa-check"></i>
-				<h3 class="box-title">Resultats : <?=$code;?></h3>
+				<h3 class="box-title">Resultats : <?=htmlspecialchars($code);?></h3>
 			</div>
 			<div class="box-body">
 				
@@ -92,6 +91,7 @@
 					</thead>
 					<tbody>
 						<?php
+							if(!empty($arts)):
 							foreach($arts as $art):
 						?>
 								<tr>
@@ -102,7 +102,8 @@
 									<td><?=number_format($art->qteStockArticle, 0, ',', ' ');?></td>
 								</tr>
 						<?php 
-								endforeach;
+							endforeach;
+							endif;
 						?>
 					</tbody>
 					<tfoot>

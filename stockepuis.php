@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Alertes Stock";
 	$pagestitle = "Etat du stock épuisé"; // A remplacer après
@@ -12,8 +11,8 @@
 	
 	//pagination
 	$parpage = 5;
-	$sql = "SELECT * FROM article WHERE statutArticle='ON' AND seuilArticle>=qteStockArticle";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM article WHERE statutArticle='ON' AND seuilArticle>=qteStockArticle");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	// Navigation pagination
@@ -35,9 +34,8 @@
 	ob_start();
 ?>
 <?php
-	$sqla = "SELECT * FROM article WHERE statutArticle='ON' AND 
-	seuilArticle>=qteStockArticle LIMIT $first, $parpage";
-	$articles = SQLSelect($sqla);
+	$articles = SQLSelect("SELECT * FROM article WHERE statutArticle='ON' AND 
+	seuilArticle>=qteStockArticle LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 ?>
 
 	<div class="row col-lg-12">

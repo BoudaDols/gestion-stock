@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J du stock";
 	$pagestitle = "Mise à jour du stock"; // A remplacer après
@@ -13,7 +12,6 @@
 	$button = "";
 	$msg = "";
 	$classmsg = "";
-	// $button = "";
 	$action = "";
 	$disabled = ""; //Sert à griser les champs
 	
@@ -23,8 +21,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM entreestock";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM entreestock");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -36,8 +34,7 @@
 		if($getaction=="edit")//
 		{
 			//déduire la qté de l'entrée de la qté en stock de l'article
-			$sql = "SELECT * FROM entreestock WHERE idEntree='$getcode'";
-			$entrees = SQLSelect($sql);
+			$entrees = SQLSelect("SELECT * FROM entreestock WHERE idEntree = :code", [':code' => $getcode]);
 			if(!empty($entrees))
 			{
 				foreach($entrees as $entree)
@@ -49,25 +46,20 @@
 			$qteStock = getQte($getart) - $qteentree;
 			
 			//copier la ligne à supprimer dans la table drop_entreestock
-			$copie = $bdd->db->PREPARE("INSERT INTO drop_entreestock SELECT * FROM entreestock 
-										WHERE idEntree=:idEnt");
-			$copie->EXECUTE(array('idEnt'=>$getcode));
+			SQLExecute("INSERT INTO drop_entreestock SELECT * FROM entreestock 
+										WHERE idEntree=:idEnt", ['idEnt'=>$getcode]);
 			
 			//mettre à jour la qté en stock de l'article
-			$majqte = $bdd->db->PREPARE("UPDATE article SET qteStockArticle=:nqte WHERE codeArticle=:codeart");
-			$majqte->EXECUTE(array('nqte'=>$qteStock, 'codeart'=>$getart));
+			SQLExecute("UPDATE article SET qteStockArticle=:nqte WHERE codeArticle=:codeart",
+			['nqte'=>$qteStock, 'codeart'=>$getart]);
 			
 			//supprimer la l'entrée en stock de l'article
-			$delete = $bdd->db->PREPARE("DELETE FROM entreestock WHERE idEntree=:idEntree");
-			$delete->EXECUTE(array('idEntree'=>$getcode));
+			SQLExecute("DELETE FROM entreestock WHERE idEntree=:idEntree", ['idEntree'=>$getcode]);
 			
 			$disabled = "disabled";
 			$msg = "Stock mis à jour avec succès!";
 			$classmsg = "alert alert-success";
-			// $button = "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>
-							// <i class='glyphicon glyphicon-off'></i></button>";
 			$action = "<br><br><br><a href='majstock.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-			// var_dump($qteStock); exit;
 		}
 	}
 	
@@ -92,7 +84,7 @@
 			
 			if($req=="majqte")
 			{
-				if(!is_Numeric($prixa) OR !is_Numeric($qte))
+				if(!is_numeric($prixa) OR !is_numeric($qte))
 				{
 					$msg="Vérifiez la saisie du prix d'achat et de la quantité!<br>
 					<input type='button' value='Retour' class='btn btn-info'
@@ -103,14 +95,14 @@
 				}
 				else
 				{
-					$sql = $bdd->db->PREPARE("INSERT INTO entreestock (entree_codeArticle,
+					SQLExecute("INSERT INTO entreestock (entree_codeArticle,
 									entree_codeFournisseur,quantiteAEntree,dateEntree,prixAchatEntree) 
-							VALUES(:codea,:codef,:qte,:date,:pa)");
-					$sql->EXECUTE(array('codea'=>$art,'codef'=>$frs,'qte'=>$qte,
-									'date'=>date("Y-m-d"),'pa'=>$prixa));
+							VALUES(:codea,:codef,:qte,:date,:pa)",
+							['codea'=>$art,'codef'=>$frs,'qte'=>$qte,
+							'date'=>date("Y-m-d"),'pa'=>$prixa]);
 					
-					$sqlprix = $bdd->db->PREPARE("UPDATE article SET qteStockArticle=:nqte WHERE codeArticle=:codeart");
-					$sqlprix->EXECUTE(array('nqte'=>$qteStock, 'codeart'=>$art));
+					SQLExecute("UPDATE article SET qteStockArticle=:nqte WHERE codeArticle=:codeart",
+					['nqte'=>$qteStock, 'codeart'=>$art]);
 					
 					$disabled = "disabled";
 					$msg="Stock mis à jour avec succès!";
@@ -121,7 +113,7 @@
 			}
 			else
 			{
-				if(!is_Numeric($prixa) OR !is_Numeric($qte))
+				if(!is_numeric($prixa) OR !is_numeric($qte))
 				{
 					$msg="Vérifiez la saisie du prix d'achat et de la quantité!<br>
 					<input type='button' value='Retour' class='btn btn-info'
@@ -132,15 +124,15 @@
 				}
 				else
 				{
-					$sql = $bdd->db->PREPARE("INSERT INTO entreestock (entree_codeArticle,
+					SQLExecute("INSERT INTO entreestock (entree_codeArticle,
 									entree_codeFournisseur,quantiteAEntree,dateEntree,prixAchatEntree) 
-							VALUES(:codea,:codef,:qte,:date,:pa)");
-					$sql->EXECUTE(array('codea'=>$art,'codef'=>$frs,'qte'=>$qte,
-									'date'=>date("Y-m-d"),'pa'=>$prixa));
+							VALUES(:codea,:codef,:qte,:date,:pa)",
+							['codea'=>$art,'codef'=>$frs,'qte'=>$qte,
+							'date'=>date("Y-m-d"),'pa'=>$prixa]);
 					
-					$sqlprix = $bdd->db->PREPARE("UPDATE article SET qteStockArticle=:nqte, prixMinArticle=:nprix 
-												WHERE codeArticle=:codeart");
-					$sqlprix->EXECUTE(array('nqte'=>$qteStock, 'nprix'=>$prixv, 'codeart'=>$art));
+					SQLExecute("UPDATE article SET qteStockArticle=:nqte, prixMinArticle=:nprix 
+												WHERE codeArticle=:codeart",
+												['nqte'=>$qteStock, 'nprix'=>$prixv, 'codeart'=>$art]);
 					
 					$disabled = "disabled";
 					$msg="Stock mis à jour avec succès!";
@@ -173,12 +165,10 @@
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM entreestock LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM entreestock WHERE entree_codeArticle LIKE '%$rech%' LIMIT $first, $parpage";
 			$tableau = "rechercher";
 		}
 	}
@@ -212,23 +202,16 @@
 		function article()
 		{
 			var xhr = getXhr();
-			// On défini ce qu'on va faire quand on aura la réponse
 			xhr.onreadystatechange = function()
 			{
-				// On ne fait quelque chose que si on a tout reçu et que le serveur est ok
 				if(xhr.readyState == 4 && xhr.status == 200)
 				{
 					articles = xhr.responseText;
-					// On se sert de innerHTML pour rajouter les options a la liste
 					document.getElementById('codeA').innerHTML = articles;
 				}
 			}
-			// Ici faire du post
 			xhr.open("POST","ajax/selectarticle.ajax.php",true);
-			// ne pas oublier ça pour le post
 			xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
-			// ne pas oublier de poster les arguments
-			// ici, l'id de la catégorie d'article
 			typeSelected = document.getElementById('codeTA');
 			idtypea = typeSelected.options[typeSelected.selectedIndex].value;
 			xhr.send("idtypeA="+idtypea);
@@ -250,8 +233,7 @@
 									<i class="fa fa-barcode"></i>
 								</div>
 								<?php
-									$sql="SELECT * FROM fournisseur WHERE statutFournisseur='ON'";
-									$fourn=SQLSelect($sql);
+									$fourn=SQLSelect("SELECT * FROM fournisseur WHERE statutFournisseur='ON'");
 								?>
 								<select class="form-control" type="text" style="width:400px" name="codeF" id="codeF" <?=$disabled;?> >
 									<option value="0">Choisir un fournisseur</option>
@@ -272,8 +254,7 @@
 									<i class="fa fa-barcode"></i>
 								</div>
 								<?php
-									$sql="SELECT * FROM typearticle WHERE statutTypeA='ON'";
-									$tarts=SQLSelect($sql);
+									$tarts=SQLSelect("SELECT * FROM typearticle WHERE statutTypeA='ON'");
 								?>
 								<select class="form-control" type="text" style="width:400px" name="codeTA" id="codeTA" onChange="article()" <?=$disabled;?> >
 									<option value="-1">Choisir une catégorie</option>
@@ -293,7 +274,6 @@
 									<i class="fa fa-barcode"></i>
 								</div>
 								<select class="form-control" type="text" style="width:400px" name="codeA" id="codeA" <?=$disabled;?> required>
-									<!--<option value="-1">Choisir d'abord une catégorie</option>-->
 								</select>
 							</div>
 						</div>
@@ -357,14 +337,13 @@
 	
 	<!-- tableau-->
 	<?php
-		$sqlentier = "SELECT * FROM entreestock LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$articles = SQLSelect($sqlentier);
+			$articles = SQLSelect("SELECT * FROM entreestock LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$articles = SQLSelect($sqlrech);
+			$articles = SQLSelect("SELECT * FROM entreestock WHERE entree_codeArticle LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	

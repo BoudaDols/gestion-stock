@@ -1,57 +1,52 @@
 ﻿<?php
-	// session_start();
-	require_once('php/fonction.php');
-	$bdd = new DB();
+require_once('php/session.php');
+require_once('php/fonction.php');
 
-	$pagetitle = "GSF | Validation des Ventes";
-	$pagestitle = "Validation des Ventes"; // A remplacer après
-	$bcrumb = "Vente > Validation Vente";
-	
-	$msg = "";
-	$classmsg = "";
-	$action = "";
-	
-	$totvent = 0;
-	
-	//pagination
-	$parpage = 10;
-	$sql = "SELECT DISTINCT codeFacture FROM facture WHERE statutFacture=0 AND facture_codeTypeF!='COMPTANT'";
-	$nblignes = count(SQLSelect($sql));
-	$nbpages = ceil($nblignes/$parpage);
-	$tatus = 'CD';
-	$objet = 'Règlement Facture crédit';
-	
-	if(isset($_GET['action']))
-	{
-		$getaction = $_GET['action'];
-		$getcode = $_GET['code'];
-		$mtTT = $_GET['tt'];
-		
-		if($getaction=="valid")
-		{
-			$stat = 1;
-			$valider = $bdd->db->PREPARE("UPDATE facture SET statutFacture=:stat
-			WHERE codeFacture=:code");
-			$valider->EXECUTE(array('stat'=>$stat,'code'=>$getcode));
-			
-			$msg = "Vente validée avec succès!";
-			$classmsg = "alert alert-success";
-			$action = "<br><br><br><a href='validfacture.php'><input type='button' 
-			class='btn btn-primary' value='NOUVEAU'></a>";
-			// impression après validation
-			// header("location:popupbl.php?codefact=$getcode");
-			//insertion dans reglement
-			$regl = $bdd->db->PREPARE("INSERT INTO reglement (dateReglement,montantReglement,objetReglement,statutReglement,reglement_codeFacture)
-			VALUES(:datef,:mtTT,:objet,:status,:codeF)");
-			$regl->EXECUTE(array('datef'=>date("Y-m-d"),'mtTT'=>$mtTT,'objet'=>$objet,'status'=>$tatus,'codeF'=>$getcode));
-		}
+$pagetitle = "GSF | Validation des Ventes";
+$pagestitle = "Validation des Ventes";
+$bcrumb = "Vente > Validation Vente";
 
-	}
-	
-	// Navigation pagination
-	if(isset($_GET['page']))
-	{
-		$pactu = intval($_GET['page']);
+$msg = "";
+$classmsg = "";
+$action = "";
+
+$totvent = 0;
+
+//pagination
+$parpage = 10;
+$countResult = SQLSelect("SELECT DISTINCT codeFacture FROM facture WHERE statutFacture = 0 AND facture_codeTypeF != 'COMPTANT'");
+$nblignes = $countResult ? count($countResult) : 0;
+$nbpages = ceil($nblignes / $parpage);
+$tatus = 'CD';
+$objet = 'Règlement Facture crédit';
+
+if (isset($_GET['action'])) {
+    $getaction = $_GET['action'];
+    $getcode = $_GET['code'];
+    $mtTT = $_GET['tt'];
+
+    if ($getaction == "valid") {
+        SQLExecute("UPDATE facture SET statutFacture = :stat WHERE codeFacture = :code", [
+            ':stat' => 1, ':code' => $getcode
+        ]);
+
+        $msg = "Vente validée avec succès!";
+        $classmsg = "alert alert-success";
+        $action = "<br><br><br><a href='validfacture.php'><input type='button' 
+        class='btn btn-primary' value='NOUVEAU'></a>";
+
+        // insertion dans reglement
+        SQLExecute("INSERT INTO reglement (dateReglement, montantReglement, objetReglement, statutReglement, reglement_codeFacture)
+            VALUES (:datef, :mtTT, :objet, :status, :codeF)", [
+            ':datef' => date("Y-m-d"), ':mtTT' => $mtTT, ':objet' => $objet,
+            ':status' => $tatus, ':codeF' => $getcode
+        ]);
+    }
+}
+
+// Navigation pagination
+if (isset($_GET['page'])) {
+    $pactu = intval($_GET['page']);
 		if($pactu > $nbpages)
 		{
 			$pactu = $nbpages;
@@ -80,10 +75,10 @@
 
 	<!-- tableau-->
 	<?php
-		$sqlrech = "SELECT DISTINCT idFacture, facture_codeClient client,codeFacture facture,dateFacture datef,
-		SUM(totalFacture) total,remiseFacture remise,SUM(totalFacture)-remiseFacture NAP 
-		FROM facture WHERE statutFacture=0 AND facture_codeTypeF!='COMPTANT' GROUP BY codeFacture LIMIT $first, $parpage";
-		$factures = SQLSelect($sqlrech);
+		$sqlrech = "SELECT DISTINCT idFacture, facture_codeClient client, codeFacture facture, dateFacture datef,
+		SUM(totalFacture) total, remiseFacture remise, SUM(totalFacture)-remiseFacture NAP 
+		FROM facture WHERE statutFacture = 0 AND facture_codeTypeF != 'COMPTANT' GROUP BY codeFacture LIMIT :offset, :limit";
+		$factures = SQLSelect($sqlrech, [':offset' => $first, ':limit' => $parpage]);
 	?>
 	<div class="row col-lg-12">
 		<div class="box box-primary">

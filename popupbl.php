@@ -1,6 +1,6 @@
 ﻿<?php
+    require_once('php/session.php');
     require_once('php/fonction.php');
-    $bdd = new DB();
     //Infos societe
     $logo = getLogo();
     $nom = getNom();
@@ -15,10 +15,9 @@
         $code = $_GET['codefact'];
 
         //infos facture
-        $sql = "SELECT DISTINCT facture_codeClient, remiseFacture, dateFacture, 
+        $facts = SQLSelect("SELECT DISTINCT facture_codeClient, remiseFacture, dateFacture, 
         facture_codeTypeF, tvaFacture, cmdFacture
-        FROM facture WHERE codeFacture='$code'";
-        $facts = SQLSelect($sql);
+        FROM facture WHERE codeFacture = :code", [':code' => $code]);
         if(!empty($facts))
         {
             foreach($facts as $fact):
@@ -34,9 +33,8 @@
         }
 
         //infos clients
-        $sqlClient = "SELECT *
-        FROM client WHERE codeClient='$client'";
-        $clients = SQLSelect($sqlClient);
+        $clients = SQLSelect("SELECT *
+        FROM client WHERE codeClient = :client", [':client' => $client]);
         if(!empty($clients))
         {
             foreach($clients as $cl):
@@ -46,9 +44,8 @@
 
         //infos prix total
         $totalHT=0;
-        $sqlprix = "SELECT totalFacture 
-        FROM facture WHERE codeFacture='$code'";
-        $prix = SQLSelect($sqlprix);
+        $prix = SQLSelect("SELECT totalFacture 
+        FROM facture WHERE codeFacture = :code", [':code' => $code]);
         if(!empty($prix))
         {
             foreach($prix as $pr):
@@ -149,9 +146,8 @@
 <?php
 //infos articles
 $i = 1;
-$sqlArticles = "SELECT DISTINCT facture_codeArticle, quantiteAFacture, prixVenteFacture, totalFacture
-FROM facture WHERE codeFacture='$code'";
-$arts = SQLSelect($sqlArticles);
+$arts = SQLSelect("SELECT DISTINCT facture_codeArticle, quantiteAFacture, prixVenteFacture, totalFacture
+FROM facture WHERE codeFacture = :code", [':code' => $code]);
 if(!empty($arts))
 {
     foreach($arts as $art):
@@ -160,9 +156,8 @@ if(!empty($arts))
         $pu = $art->prixVenteFacture;
         $pt = $art->totalFacture;
         //obtenir designation article
-        $sqlDesignationArticles = "SELECT designationArticle
-        FROM article WHERE codeArticle='$cdArt'";
-        $designs = SQLSelect($sqlDesignationArticles);
+        $designs = SQLSelect("SELECT designationArticle
+        FROM article WHERE codeArticle = :cdArt", [':cdArt' => $cdArt]);
         if(!empty($designs))
         {
             foreach($designs as $design):

@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J des comptes";
 	$pagestitle = "Mise à jour des comptes"; // A remplacer après
@@ -22,8 +21,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM compte";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM compte");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -33,8 +32,7 @@
 		
 		if($getaction=="edit")
 		{
-			$sqledit = "SELECT * FROM compte WHERE codeCompte='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM compte WHERE codeCompte = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$codeC = $getcode;
 				$nomC = $edit->libelleCompte;
@@ -52,10 +50,9 @@
 		if($btnaction=="insert")
 		{
 			$codeC = $_POST['codeC'];
-			$nomC = addslashes($_POST['nomC']);
+			$nomC = $_POST['nomC'];
 			//Vérifier si le même code n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM compte WHERE codeCompte='$codeC'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM compte WHERE codeCompte = :code", [':code' => $codeC]);
 			if(!empty($result))
 			{
 				$msg = "Code déjà attribué à un compte!<br>Créez-en un autre.";
@@ -64,10 +61,9 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("INSERT INTO compte (codeCompte,libelleCompte) 
-				VALUES(:code,:nom)");
-				$sql->EXECUTE(array('code'=>$codeC,'nom'=>$nomC));
-				if($sql)
+				$success = SQLExecute("INSERT INTO compte (codeCompte,libelleCompte) 
+				VALUES(:code,:nom)", ['code'=>$codeC,'nom'=>$nomC]);
+				if($success)
 				{
 					$msg="Compte créé avec succès!";
 					$classmsg = "alert alert-success";
@@ -89,12 +85,12 @@
 		}
 		else
 		{
-			$nomC = addslashes($_POST['nomC']);
+			$nomC = $_POST['nomC'];
 			
-			$sql = $bdd->db->PREPARE("UPDATE compte SET libelleCompte=:nom WHERE codeCompte=:getcode");
-			$sql->EXECUTE(array('nom'=>$nomC,'getcode'=>$getcode));
+			$success = SQLExecute("UPDATE compte SET libelleCompte=:nom WHERE codeCompte=:getcode",
+			['nom'=>$nomC,'getcode'=>$getcode]);
 			
-			if($sql)
+			if($success)
 			{
 				$msg="Compte modifié avec succès!";
 				$classmsg = "alert alert-success";
@@ -139,12 +135,10 @@
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM compte LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM compte WHERE codeCompte LIKE '%$rech%' OR libelleCompte LIKE '%$rech%' LIMIT $first, $parpage";
 			$tableau = "rechercher";
 		}
 		
@@ -178,7 +172,7 @@
 								<div class="input-group-addon">
 									<i>Libellé</i>
 								</div>
-								<input type="text" class="form-control" style="width:350px" name="nomC" placeholder="Libellé" value="<?= stripslashes($nomC);?>" <?= $disabled; ?> required/>
+								<input type="text" class="form-control" style="width:350px" name="nomC" placeholder="Libellé" value="<?= $nomC;?>" <?= $disabled; ?> required/>
 							</div>
 						</div>
 					</div>
@@ -211,14 +205,13 @@
 	</div>
 	
 	<?php
-		$sqlentier = "SELECT * FROM compte LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$cpts = SQLSelect($sqlentier);
+			$cpts = SQLSelect("SELECT * FROM compte LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$cpts = SQLSelect($sqlrech);
+			$cpts = SQLSelect("SELECT * FROM compte WHERE codeCompte LIKE :rech OR libelleCompte LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	
@@ -266,7 +259,7 @@
 									<tr>
 										<td><?= $numligne++;?></td>
 										<td><?= $cpt->codeCompte; ?></td>
-										<td><?= stripslashes($cpt->libelleCompte) ?></td>
+										<td><?= $cpt->libelleCompte ?></td>
 										<td>
 											<a href="majcompte.php?action=edit&code=<?= $cpt->codeCompte; ?>">
 												<button class='btn bg-orange'>EDITER</button>

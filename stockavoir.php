@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 
 	$pagetitle = "GSF | Livraison Avoir";
 	$pagestitle = "Livraison Avoir"; // A remplacer après
@@ -15,9 +14,9 @@
 	
 	//pagination
 	$parpage = 10;
-	$sql = "SELECT DISTINCT codeFacture FROM facture WHERE statutFacture=1 AND solvabiliteFacture=1 AND 
-	facture_codeModalite='AVOIR' AND facture_codeTypeF='AVOIR'";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT DISTINCT codeFacture FROM facture WHERE statutFacture=1 AND solvabiliteFacture=1 AND 
+	facture_codeModalite='AVOIR' AND facture_codeTypeF='AVOIR'");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -30,35 +29,32 @@
 		
 		if($getaction=="livrer")
 		{
-			$sql = "SELECT * FROM facture WHERE codeFacture='$getcode'";
-			$facts = SQLSelect($sql);
+			$facts = SQLSelect("SELECT * FROM facture WHERE codeFacture = :code", [':code' => $getcode]);
 			
 			$stat = 2;
-			foreach($facts as $fact):
-				$art = $fact->facture_codeArticle;
-				$qtev = $fact->quantiteAFacture;
-				$qte = getQte($art) - $qtev;
-				
-				$updateart = $bdd->db->PREPARE("UPDATE article SET qteStockArticle=:nqte WHERE 
-				codeArticle=:codeart");
-				$updateart->EXECUTE(array('nqte'=>$qte,'codeart'=>$art));
-				
-				$updatefact = $bdd->db->PREPARE("UPDATE facture SET statutFacture=:stat WHERE 
-				codeFacture=:codefact");
-				$updatefact->EXECUTE(array('stat'=>$stat,'codefact'=>$getcode));
-			endforeach;
+			if(!empty($facts)) {
+				foreach($facts as $fact):
+					$art = $fact->facture_codeArticle;
+					$qtev = $fact->quantiteAFacture;
+					$qte = getQte($art) - $qtev;
+					
+					SQLExecute("UPDATE article SET qteStockArticle = :nqte WHERE codeArticle = :codeart", 
+						[':nqte' => $qte, ':codeart' => $art]);
+					
+					SQLExecute("UPDATE facture SET statutFacture = :stat WHERE codeFacture = :codefact", 
+						[':stat' => $stat, ':codefact' => $getcode]);
+				endforeach;
+			}
 
 			//Reglement ok
-			$regl = $bdd->db->PREPARE("INSERT INTO reglement (dateReglement,montantReglement,objetReglement,statutReglement,reglement_codeFacture)
-			VALUES(:datef,:mtTT,:objet,:status,:codeF)");
-			$regl->EXECUTE(array('datef'=>date("Y-m-d"),'mtTT'=>$mtTT,'objet'=>$objet,'status'=>$tatus,'codeF'=>$getcode));
+			SQLExecute("INSERT INTO reglement (dateReglement,montantReglement,objetReglement,statutReglement,reglement_codeFacture)
+			VALUES(:datef,:mtTT,:objet,:status,:codeF)", 
+				[':datef' => date("Y-m-d"), ':mtTT' => $mtTT, ':objet' => $objet, ':status' => $tatus, ':codeF' => $getcode]);
 			
 			$msg = "Livraison effectuée avec succès!";
 			$classmsg = "alert alert-success";
 			$action = "<br><br><br><a href='stockavoir.php'><input type='button' 
 			class='btn btn-primary' value='NOUVEAU'></a>";
-			//impression du bl après livraison
-			// header("location:popupbl.php?codefact=$getcode");
 		}
 	}
 	
@@ -94,11 +90,11 @@
 
 	<!-- tableau-->
 	<?php
-		$sqlrech = "SELECT DISTINCT idFacture, facture_codeClient client,codeFacture facture,dateFacture datef,
+		$factures = SQLSelect("SELECT DISTINCT idFacture, facture_codeClient client,codeFacture facture,dateFacture datef,
 		SUM(totalFacture) total,remiseFacture remise,SUM(totalFacture)-remiseFacture NAP 
 		FROM facture WHERE statutFacture=1 AND solvabiliteFacture=1 AND 
-		facture_codeModalite='AVOIR' AND facture_codeTypeF='AVOIR' GROUP BY codeFacture LIMIT $first, $parpage";
-		$factures = SQLSelect($sqlrech);
+		facture_codeModalite='AVOIR' AND facture_codeTypeF='AVOIR' GROUP BY codeFacture LIMIT :offset, :limit", 
+		[':offset' => $first, ':limit' => $parpage]);
 	?>
 	<div class="row col-lg-12">
 		<div class="box box-primary">
@@ -205,9 +201,8 @@
 
 	<script type="text/javascript">
 		<!--
-		function popup()
+		function popup(factCode)
 		{
-			var fact = "<?=$fact->facture;?>";
 			width = 1200;
 			height = 800;
 			if(window.innerWidth)
@@ -220,8 +215,8 @@
 				var left = (document.body.clientWidth-width)/2;
 				var top = (document.body.clientHeight-height)/2;
 			}
-			window.open('popupbl.php?codefact=<?=$fact->facture;?>','GSF | Vente à valider BL','menubar=no, scrollbars=no, top='+top+', left='+left+', width='+width+', height='+height+'');
-			window.open('popupfacture.php?codefact=<?=$fact->facture;?>','GSF | Vente à valider FAC','menubar=no, scrollbars=no, top='+top+', left='+left+', width='+width+', height='+height+'');
+			window.open('popupbl.php?codefact='+factCode,'GSF | Vente à valider BL','menubar=no, scrollbars=no, top='+top+', left='+left+', width='+width+', height='+height+'');
+			window.open('popupfacture.php?codefact='+factCode,'GSF | Vente à valider FAC','menubar=no, scrollbars=no, top='+top+', left='+left+', width='+width+', height='+height+'');
 		}
 		-->
 	</script>

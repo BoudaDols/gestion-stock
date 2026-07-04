@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Tableau de bord";
 	$pagestitle = " Tableau de bord"; // A remplacer après
@@ -27,7 +26,7 @@
 				        <div class="well">
 				          <h4 class="text-primary">
 				          	<span class="label label-primary pull-right">
-				          		<?=Count(SQLSelect("SELECT * FROM article WHERE statutArticle='ON' AND seuilArticle>=qteStockArticle"));?>
+				          		<?php $r = SQLSelect("SELECT * FROM article WHERE statutArticle='ON' AND seuilArticle>=qteStockArticle"); echo $r ? count($r) : 0; ?>
 				          	</span> 
 				          	<a href="stockepuis.php"> Articles en rupture <a/><br>
 				          </h4>
@@ -40,12 +39,12 @@
 				        <div class="well">
 				          <h4 class="text-primary">
 				          	<span class="label label-primary pull-right">
-				          		<?=Count(SQLSelect("SELECT f.dateFacture dte, f.facture_codeArticle code, sum(f.quantiteAFacture) qte, a.designationArticle 				design
+				          		<?php $r = SQLSelect("SELECT f.dateFacture dte, f.facture_codeArticle code, sum(f.quantiteAFacture) qte, a.designationArticle design
 													FROM facture f, article a
-													WHERE f.dateFacture >= '$actu1' AND f.dateFacture <= '$actu2' AND f.facture_codeArticle=a.codeArticle 
+													WHERE f.dateFacture >= :date1 AND f.dateFacture <= :date2 AND f.facture_codeArticle=a.codeArticle 
 													GROUP BY a.designationArticle
 													ORDER BY qte DESC
-													LIMIT 10"));?>
+													LIMIT 10", [':date1' => $actu1, ':date2' => $actu2]); echo $r ? count($r) : 0; ?>
 				          	</span> 
 				          	<a href="listearticleLPvendu.php"> Articles de la semaine<a/><br>
 				          </h4>
@@ -74,9 +73,8 @@
 				          			<?php
 										$actu = date('Y-m-d');
 										$tdep = 0;
-										$sqlr = "SELECT montantReglement FROM reglement WHERE statutReglement='D' AND 
-										dateReglement='$actu'";
-										$regl=SQLSelect($sqlr);
+										$regl = SQLSelect("SELECT montantReglement FROM reglement WHERE statutReglement='D' AND 
+										dateReglement = :actu", [':actu' => $actu]);
 										if(empty($regl))
 										{
 											echo $tdep." FCFA";
@@ -104,9 +102,8 @@
 					          		<?php
 										$actu = date('Y-m-d');
 										$tdep = 0;
-										$sqlr = "SELECT montantReglement FROM reglement WHERE statutReglement='E' AND 
-										dateReglement='$actu'";
-										$regl=SQLSelect($sqlr);
+										$regl = SQLSelect("SELECT montantReglement FROM reglement WHERE statutReglement='E' AND 
+										dateReglement = :actu", [':actu' => $actu]);
 										if(empty($regl))
 										{
 											echo $tdep." FCFA";
@@ -134,9 +131,8 @@
 					          		<?php
 										$actu = date('Y-m-d');
 										$tvente = 0;
-										$sqlv = "SELECT montantReglement FROM reglement WHERE reglement_codeFacture!='' AND 
-										statutReglement!='D' AND statutReglement!='E' AND dateReglement='$actu'";
-										$vente=SQLSelect($sqlv);
+										$vente = SQLSelect("SELECT montantReglement FROM reglement WHERE reglement_codeFacture!='' AND 
+										statutReglement!='D' AND statutReglement!='E' AND dateReglement = :actu", [':actu' => $actu]);
 										if(empty($vente))
 										{
 											echo $tvente." FCFA";

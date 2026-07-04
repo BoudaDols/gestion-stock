@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J des magasins";
 	$pagestitle = "Mise à jour des magasins"; // A remplacer après
@@ -22,8 +21,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM magasin";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM magasin");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -33,11 +32,10 @@
 		
 		if($getaction=="edit")
 		{
-			$sqledit = "SELECT * FROM magasin WHERE codeMagasin='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM magasin WHERE codeMagasin = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$codeM = $getcode;
-				$nomM = stripslashes($edit->libelleMagasin);
+				$nomM = $edit->libelleMagasin;
 			endforeach;
 			$btnaction = "update";
 			$disabledc = "disabled";
@@ -45,45 +43,35 @@
 		}
 		elseif($getaction=="statut")
 		{
-			$sqlrechstat = "SELECT * FROM magasin WHERE codeMagasin='$getcode'";
-			$lestats = SQLSelect($sqlrechstat);
+			$lestats = SQLSelect("SELECT * FROM magasin WHERE codeMagasin = :code", [':code' => $getcode]);
 			foreach($lestats as $lestat):
 				$oldstat = $lestat->statutMagasin;
 			endforeach;
 			if($oldstat=="ON")
 			{
 				//d'abord desactiver les articles en lien
-				$sqlstat = $bdd->db->PREPARE("UPDATE magasin SET statutMagasin=:nstat WHERE codeMagasin=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'OFF', 'getcode'=>$getcode));
+				SQLExecute("UPDATE magasin SET statutMagasin=:nstat WHERE codeMagasin=:getcode",
+				['nstat'=>'OFF', 'getcode'=>$getcode]);
 				
+				$msg="Magasin desactivé!";
+				$classmsg = "alert alert-warning";
+				$action = "<br><br><br><a href='majmagasin.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
 				
-				if($sqlstat)
-				{
-					$msg="Magasin desactivé!";
-					$classmsg = "alert alert-warning";
-					$action = "<br><br><br><a href='majmagasin.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-					
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
-				
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 			else
 			{
 				//d'abord activer les articles en lien
-				$sqlstat = $bdd->db->PREPARE("UPDATE magasin SET statutMagasin=:nstat WHERE codeMagasin=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'ON', 'getcode'=>$getcode));
+				SQLExecute("UPDATE magasin SET statutMagasin=:nstat WHERE codeMagasin=:getcode",
+				['nstat'=>'ON', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Magasin activé!";
-					$classmsg = "alert alert-success";
-					$action = "<br><br><br><a href='majmagasin.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-					
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
+				$msg="Magasin activé!";
+				$classmsg = "alert alert-success";
+				$action = "<br><br><br><a href='majmagasin.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
 				
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 		}
 			
@@ -95,14 +83,12 @@
 		
 		if($btnaction=="insert")
 		{
-			
 			$codeM = $_POST['codeM'];
-			$nomM = addslashes($_POST['nomM']);
+			$nomM = $_POST['nomM'];
 			$stat = "ON";
 			
 			//Vérifier si le même code n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM magasin WHERE codeMagasin='$codeM'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM magasin WHERE codeMagasin = :code", [':code' => $codeM]);
 			if(!empty($result))
 			{
 				$msg = "Code déjà attribué à un magasin!<br>Créez-en un autre.";
@@ -111,13 +97,12 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("INSERT INTO magasin 
+				$success = SQLExecute("INSERT INTO magasin 
 										(codeMagasin, libelleMagasin, statutMagasin) 
-										VALUES(:code, :nom, :stat)
-										");
-				$sql->EXECUTE(array('code' => $codeM, 'nom' => $nomM, 'stat' => $stat));
+										VALUES(:code, :nom, :stat)",
+										['code' => $codeM, 'nom' => $nomM, 'stat' => $stat]);
 				
-				if($sql)
+				if($success)
 				{
 					$msg="Magasin créé avec succès!";
 					$classmsg = "alert alert-success";
@@ -140,12 +125,12 @@
 		}
 		else
 		{
-			$nomM = addslashes($_POST['nomM']);
+			$nomM = $_POST['nomM'];
 			
-			$sql = $bdd->db->PREPARE("UPDATE magasin SET libelleMagasin=:nom WHERE codeMagasin=:getcode");
-			$sql->EXECUTE(array('nom'=>$nomM,'getcode'=>$getcode));
+			$success = SQLExecute("UPDATE magasin SET libelleMagasin=:nom WHERE codeMagasin=:getcode",
+			['nom'=>$nomM,'getcode'=>$getcode]);
 			
-			if($sql)
+			if($success)
 			{
 				$msg="Magasin modifié avec succès!";
 				$classmsg = "alert alert-success";
@@ -190,15 +175,12 @@
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM magasin LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM magasin WHERE codeMagasin LIKE '%$rech%' OR libelleMagasin LIKE '%$rech%' LIMIT $first, $parpage";
 			$tableau = "rechercher";
 		}
-		
 	}
 	
 	ob_start();
@@ -260,14 +242,13 @@
 	</div>
 	
 	<?php
-		$sqlentier = "SELECT * FROM magasin LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$magasin = SQLSelect($sqlentier);
+			$magasin = SQLSelect("SELECT * FROM magasin LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$magasin = SQLSelect($sqlrech);
+			$magasin = SQLSelect("SELECT * FROM magasin WHERE codeMagasin LIKE :rech OR libelleMagasin LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	
@@ -316,7 +297,7 @@
 									<tr>
 										<td><?= $numligne++;?></td>
 										<td><?= $mag->codeMagasin; ?></td>
-										<td><?= stripslashes($mag->libelleMagasin) ?></td>
+										<td><?= $mag->libelleMagasin ?></td>
 										<td>
 											<a href="majmagasin.php?action=edit&code=<?= $mag->codeMagasin; ?>">
 												<button class='btn bg-orange'>EDITER</button>

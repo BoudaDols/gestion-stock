@@ -1,64 +1,63 @@
 ﻿<?php
-	// session_start();
-	require_once('php/fonction.php');
-	$bdd = new DB();
+require_once('php/session.php');
+require_once('php/fonction.php');
 
-	$pagetitle = "GSF | Annulation des Ventes";
-	$pagestitle = "Annulation des Ventes"; // A remplacer après
-	$bcrumb = "Vente > Annulation Vente";
-	
-	$msg = "";
-	$classmsg = "";
-	$action = "";
-								
-	$totvent = 0;
-	
-	//pagination
-	$parpage = 10;
-	$sql = "SELECT DISTINCT codeFacture FROM facture WHERE statutFacture=0";
-	$nblignes = count(SQLSelect($sql));
-	$nbpages = ceil($nblignes/$parpage);
-	
-	if(isset($_GET['action']))
-	{
-		$getaction = $_GET['action'];
-		$getcode = $_GET['code'];
-		
-		if($getaction=="annul")
-		{
-			$sql = "SELECT * FROM facture WHERE codeFacture='$getcode'";
-			$facts = SQLSelect($sql);
-			
-			//maj la qté en stock des articles concernés par la facture
-			foreach($facts as $fact):
-				$art = $fact->facture_codeArticle;
-				$aqte = getQte($art);
-				$update = $bdd->db->PREPARE("UPDATE article SET qteStockArticle=:nqte
-				WHERE codeArticle=:codea");
-				$update->EXECUTE(array('nqte'=>$fact->quantiteAFacture+$aqte,
-				'codea'=>$fact->facture_codeArticle));
-			endforeach;
-			
-			//copier le contenu de la facture à annuler dans la table annuler_facture
-			$copie = $bdd->db->PREPARE("INSERT INTO annuler_facture SELECT * FROM facture 
-			WHERE codeFacture=:codefact");
-			$copie->EXECUTE(array('codefact'=>$getcode));
-			
-			//supprimer la facture annulée dans la table facture
-			$delete = $bdd->db->PREPARE("DELETE FROM facture WHERE codeFacture=:codefac");
-			$delete->EXECUTE(array('codefac'=>$getcode));
-			
-			$msg = "Vente annulée!";
-			$classmsg = "alert alert-success";
-			$action = "<br><br><br><a href='annulfacture.php'><input type='button' 
-			class='btn btn-primary' value='NOUVEAU'></a>";
-		}
-	}
-	
-	// Navigation pagination
-	if(isset($_GET['page']))
-	{
-		$pactu = intval($_GET['page']);
+$pagetitle = "GSF | Annulation des Ventes";
+$pagestitle = "Annulation des Ventes";
+$bcrumb = "Vente > Annulation Vente";
+
+$msg = "";
+$classmsg = "";
+$action = "";
+							
+$totvent = 0;
+
+//pagination
+$parpage = 10;
+$sqlCount = "SELECT DISTINCT codeFacture FROM facture WHERE statutFacture = 0";
+$countResult = SQLSelect($sqlCount);
+$nblignes = $countResult ? count($countResult) : 0;
+$nbpages = ceil($nblignes / $parpage);
+
+if (isset($_GET['action'])) {
+    $getaction = $_GET['action'];
+    $getcode = $_GET['code'];
+
+    if ($getaction == "annul") {
+        $facts = SQLSelect("SELECT * FROM facture WHERE codeFacture = :code", [':code' => $getcode]);
+
+        // maj la qté en stock des articles concernés par la facture
+        if ($facts) {
+            foreach ($facts as $fact) {
+                $art = $fact->facture_codeArticle;
+                $aqte = getQte($art);
+                SQLExecute("UPDATE article SET qteStockArticle = :nqte WHERE codeArticle = :codea", [
+                    ':nqte' => $fact->quantiteAFacture + $aqte,
+                    ':codea' => $fact->facture_codeArticle
+                ]);
+            }
+        }
+
+        // copier le contenu de la facture à annuler dans la table annuler_facture
+        SQLExecute("INSERT INTO annuler_facture SELECT * FROM facture WHERE codeFacture = :codefact", [
+            ':codefact' => $getcode
+        ]);
+
+        // supprimer la facture annulée dans la table facture
+        SQLExecute("DELETE FROM facture WHERE codeFacture = :codefac", [
+            ':codefac' => $getcode
+        ]);
+
+        $msg = "Vente annulée!";
+        $classmsg = "alert alert-success";
+        $action = "<br><br><br><a href='annulfacture.php'><input type='button' 
+        class='btn btn-primary' value='NOUVEAU'></a>";
+    }
+}
+
+// Navigation pagination
+if (isset($_GET['page'])) {
+    $pactu = intval($_GET['page']);
 		if($pactu > $nbpages)
 		{
 			$pactu = $nbpages;
@@ -87,10 +86,10 @@
 
 	<!-- tableau-->
 	<?php
-		$sqlrech = "SELECT DISTINCT idFacture, facture_codeClient client,codeFacture facture,dateFacture datef,
-		SUM(totalFacture) total,remiseFacture remise,SUM(totalFacture)-remiseFacture NAP 
-		FROM facture WHERE statutFacture=0 GROUP BY codeFacture LIMIT $first, $parpage";
-		$factures = SQLSelect($sqlrech);
+		$sqlrech = "SELECT DISTINCT idFacture, facture_codeClient client, codeFacture facture, dateFacture datef,
+		SUM(totalFacture) total, remiseFacture remise, SUM(totalFacture)-remiseFacture NAP 
+		FROM facture WHERE statutFacture = 0 GROUP BY codeFacture LIMIT :offset, :limit";
+		$factures = SQLSelect($sqlrech, [':offset' => $first, ':limit' => $parpage]);
 	?>
 	<div class="row col-lg-12">
 		<div class="box box-primary">

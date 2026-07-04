@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | M.A.J des fournisseurs";
 	$pagestitle = "Mise à jour des fournisseurs"; // A remplacer après
@@ -24,8 +23,8 @@
 	
 	//Pagination
 	$parpage = 10;
-	$sql = "SELECT * FROM fournisseur";
-	$nblignes = count(SQLSelect($sql));
+	$result = SQLSelect("SELECT * FROM fournisseur");
+	$nblignes = $result ? count($result) : 0;
 	$nbpages = ceil($nblignes/$parpage);
 	
 	if(isset($_GET['action']))
@@ -35,11 +34,10 @@
 		
 		if($getaction=="edit")
 		{
-			$sqledit = "SELECT * FROM fournisseur WHERE codeFournisseur='$getcode'";
-			$edits = SQLSelect($sqledit);
+			$edits = SQLSelect("SELECT * FROM fournisseur WHERE codeFournisseur = :code", [':code' => $getcode]);
 			foreach($edits as $edit):
 				$codeF = $getcode;
-				$nomF = stripslashes($edit->nomFournisseur);
+				$nomF = $edit->nomFournisseur;
 				$adresseF = $edit->adresseFournisseur;
 				$telF = $edit->telFournisseur;
 			endforeach;
@@ -49,42 +47,33 @@
 		}
 		elseif($getaction=="statut")
 		{
-			$sqlrechstat = "SELECT * FROM fournisseur WHERE codeFournisseur='$getcode'";
-			$lestats = SQLSelect($sqlrechstat);
+			$lestats = SQLSelect("SELECT * FROM fournisseur WHERE codeFournisseur = :code", [':code' => $getcode]);
 			foreach($lestats as $lestat):
 				$oldstat = $lestat->statutFournisseur;
 			endforeach;
 			if($oldstat=="ON")
 			{
-				$sqlstat = $bdd->db->PREPARE("UPDATE fournisseur SET statutFournisseur=:nstat WHERE codeFournisseur=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'OFF', 'getcode'=>$getcode));
+				SQLExecute("UPDATE fournisseur SET statutFournisseur=:nstat WHERE codeFournisseur=:getcode",
+				['nstat'=>'OFF', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Fournisseur desactivé!";
-					$classmsg = "alert alert-warning";
-					$action = "<br><br><br><a href='majfournisseur.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-					
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
+				$msg="Fournisseur desactivé!";
+				$classmsg = "alert alert-warning";
+				$action = "<br><br><br><a href='majfournisseur.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
 				
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 			else
 			{
-				$sqlstat = $bdd->db->PREPARE("UPDATE fournisseur SET statutFournisseur=:nstat WHERE codeFournisseur=:getcode");
-				$sqlstat->EXECUTE(array('nstat'=>'ON', 'getcode'=>$getcode));
+				SQLExecute("UPDATE fournisseur SET statutFournisseur=:nstat WHERE codeFournisseur=:getcode",
+				['nstat'=>'ON', 'getcode'=>$getcode]);
 				
-				if($sqlstat)
-				{
-					$msg="Fournisseur activé!";
-					$classmsg = "alert alert-success";
-					$action = "<br><br><br><a href='majfournisseur.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
-					
-					$disabledc = "disabled";
-					$disabled = "disabled";
-				}
+				$msg="Fournisseur activé!";
+				$classmsg = "alert alert-success";
+				$action = "<br><br><br><a href='majfournisseur.php'><input type='button' class='btn btn-primary' value='NOUVEAU'></a>";
 				
+				$disabledc = "disabled";
+				$disabled = "disabled";
 			}
 		}
 			
@@ -96,16 +85,14 @@
 		
 		if($btnaction=="insert")
 		{
-			
 			$codeF = $_POST['codeF'];
-			$nomF = addslashes($_POST['nomF']);
+			$nomF = $_POST['nomF'];
 			$telF = $_POST['telF'];
-			$adresseF = addslashes($_POST['adresseF']);
+			$adresseF = $_POST['adresseF'];
 			$stat = "ON";
 			
 			//Vérifier si le même code n'est pas déjà utilisé
-			$verifCode = "SELECT * FROM fournisseur WHERE codeFournisseur='$codeF'";
-			$result = SQLSelect($verifCode);
+			$result = SQLSelect("SELECT * FROM fournisseur WHERE codeFournisseur = :code", [':code' => $codeF]);
 			if(!empty($result))
 			{
 				$msg = "Code déjà attribué à un fournisseur!<br>Créez-en un autre.";
@@ -114,15 +101,14 @@
 			}
 			else
 			{
-				$sql = $bdd->db->PREPARE("INSERT INTO fournisseur 
+				$success = SQLExecute("INSERT INTO fournisseur 
 										(codeFournisseur, nomFournisseur, adresseFournisseur, telFournisseur, statutFournisseur) 
-										VALUES(:code, :nom, :adresse, :tel, :stat)
-										");
-				$sql->EXECUTE(array(
-									'code' => $codeF, 'nom' => $nomF, 
-									'adresse' => $adresseF, 'tel' => $telF, 'stat' => $stat
-									));
-				if($sql)
+										VALUES(:code, :nom, :adresse, :tel, :stat)",
+										[
+											'code' => $codeF, 'nom' => $nomF, 
+											'adresse' => $adresseF, 'tel' => $telF, 'stat' => $stat
+										]);
+				if($success)
 				{
 					$msg="Fournisseur créé avec succès!";
 					$classmsg = "alert alert-success";
@@ -138,25 +124,25 @@
 					$button = "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'><i class='glyphicon glyphicon-off'></i></button>";
 					
 					$codeF = $_POST['codeF'];
-					$nomF = addslashes($_POST['nomF']);
+					$nomF = $_POST['nomF'];
 					$telF = $_POST['telF'];
-					$adresseF = addslashes($_POST['adresseF']);
+					$adresseF = $_POST['adresseF'];
 				}
 			}
 			
 		}
 		else
 		{
-			$nomF = addslashes($_POST['nomF']);
+			$nomF = $_POST['nomF'];
 			$telF = $_POST['telF'];
-			$adresseF = addslashes($_POST['adresseF']);
+			$adresseF = $_POST['adresseF'];
 			
-			$sql = $bdd->db->PREPARE("UPDATE fournisseur SET nomFournisseur=:nom, 
+			$success = SQLExecute("UPDATE fournisseur SET nomFournisseur=:nom, 
 									adresseFournisseur=:adresse, telFournisseur=:tel
-									WHERE codeFournisseur=:getcode");
-			$sql->EXECUTE(array('nom'=>$nomF,'adresse'=>$adresseF, 
-							 'tel'=>$telF,'getcode'=>$getcode));
-			if($sql)
+									WHERE codeFournisseur=:getcode",
+									['nom'=>$nomF,'adresse'=>$adresseF, 
+									 'tel'=>$telF,'getcode'=>$getcode]);
+			if($success)
 			{
 				$msg="Fournisseur modifié avec succès!";
 				$classmsg = "alert alert-success";
@@ -195,21 +181,17 @@
 	$numligne = ($pactu*$parpage)-$parpage+1;	
 	$first = ($pactu-1)*$parpage;
 	
-	
 	if(isset($_POST['btnresearch']))
 	{
 		$rech = $_POST['research'];
 		if($rech=="")
 		{
-			$sqlrech = "SELECT * FROM fournisseur LIMIT $first, $parpage";
 			$tableau = "entier";
 		}
 		else
 		{
-			$sqlrech = "SELECT * FROM fournisseur WHERE codeFournisseur LIKE '%$rech%' OR nomFournisseur LIKE '%$rech%' LIMIT $first, $parpage";
 			$tableau = "rechercher";
 		}
-		
 	}
 	
 	ob_start();
@@ -287,14 +269,13 @@
 	</div>
 	
 	<?php
-		$sqlentier = "SELECT * FROM fournisseur LIMIT $first, $parpage";
 		if($tableau=="entier")
 		{
-			$fournisseurs = SQLSelect($sqlentier);
+			$fournisseurs = SQLSelect("SELECT * FROM fournisseur LIMIT :offset, :limit", [':offset' => $first, ':limit' => $parpage]);
 		}
 		else
 		{
-			$fournisseurs = SQLSelect($sqlrech);
+			$fournisseurs = SQLSelect("SELECT * FROM fournisseur WHERE codeFournisseur LIKE :rech OR nomFournisseur LIKE :rech LIMIT :offset, :limit", [':rech' => "%{$rech}%", ':offset' => $first, ':limit' => $parpage]);
 		}
 	?>
 	
@@ -345,7 +326,7 @@
 									<tr>
 										<td><?= $numligne++;?></td>
 										<td><?= $frs->codeFournisseur; ?></td>
-										<td><?= stripslashes($frs->nomFournisseur) ?></td>
+										<td><?= $frs->nomFournisseur ?></td>
 										<td><?= $frs->adresseFournisseur; ?></td>
 										<td><?= $frs->telFournisseur; ?></td>
 										<td>

@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$pagetitle = "GSF | Listes des Factures échues";
 	$pagestitle = "Factures crédits non soldées échues"; // A remplacer après
@@ -13,22 +12,23 @@
 
 	$actu = date_format(date_create(date('Y-m-d')), 'Y-m-d');
 	
-	$sqlf = "SELECT DISTINCT codeFacture,dateFacture,nomClient,solvabiliteFacture 
+	$factures = SQLSelect("SELECT DISTINCT codeFacture,dateFacture,nomClient,solvabiliteFacture 
 	FROM facture,client,article WHERE facture_codeTypeF='CREDIT' AND codeClient=facture_codeClient 
-	AND codeArticle=facture_codeArticle AND solvabiliteFacture=0";
-	$factures = SQLSelect($sqlf);
+	AND codeArticle=facture_codeArticle AND solvabiliteFacture=0");
 	$tabech = array();
-	foreach($factures as $fact):
-		$next = getNextDate($fact->codeFacture);
-		if(strtotime($actu)>=strtotime($next))
-		{
-			$ttc = getTTC($fact->codeFacture);
-			$vers = getSumPaidC($fact->codeFacture);
-			$solde = $ttc - $vers;
-			$tabech[] = array('codef'=>$fact->codeFacture,'clientf'=>$fact->nomClient,
-			'datef'=>$fact->dateFacture,'total'=>$ttc,'versf'=>$vers,'solde'=>$solde);
-		}
-	endforeach;
+	if(!empty($factures)) {
+		foreach($factures as $fact):
+			$next = getNextDate($fact->codeFacture);
+			if(strtotime($actu)>=strtotime($next))
+			{
+				$ttc = getTTC($fact->codeFacture);
+				$vers = getSumPaidC($fact->codeFacture);
+				$solde = $ttc - $vers;
+				$tabech[] = array('codef'=>$fact->codeFacture,'clientf'=>$fact->nomClient,
+				'datef'=>$fact->dateFacture,'total'=>$ttc,'versf'=>$vers,'solde'=>$solde);
+			}
+		endforeach;
+	}
 ?>
 
 	<div class="row col-lg-12">

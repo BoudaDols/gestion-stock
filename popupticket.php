@@ -1,11 +1,10 @@
 <?php
 require('\php\fpdf\fpdf.php');
 //require('\php\fpdf\mc_table.php');
-// session_start();
+require_once('php/session.php');
 require_once('php/fonction.php');
 require_once('php/ChiffresEnLettres.php');
 $lettre = new ChiffreEnLettre();
-$bdd = new DB();
 
 $logo = getLogo();
 $nom = getNom();
@@ -23,9 +22,8 @@ $fixer=100;
 $code=$_GET["ref"];
 
 
-$sql = "SELECT DISTINCT facture_codeClient, remiseFacture, dateFacture, facture_codeTypeF, 
-cmdFacture FROM facture WHERE codeFacture='$code'";
-$facts = SQLSelect($sql);
+$facts = SQLSelect("SELECT DISTINCT facture_codeClient, remiseFacture, dateFacture, facture_codeTypeF, 
+cmdFacture FROM facture WHERE codeFacture = :code", [':code' => $code]);
 if(!empty($facts))
 {
 	foreach($facts as $fact):
@@ -36,8 +34,7 @@ if(!empty($facts))
 		$cmd = $fact->cmdFacture;
 	endforeach;
 }
-$sqlart = "SELECT * FROM facture WHERE codeFacture='$code'";
-$arts = SQLSelect($sqlart);
+$arts = SQLSelect("SELECT * FROM facture WHERE codeFacture = :code", [':code' => $code]);
 $nbligneRequete = count($arts);
 $nbligne = $fixer + ($nbligneRequete * 10);
 

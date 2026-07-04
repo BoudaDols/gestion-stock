@@ -1,7 +1,6 @@
 ﻿<?php
-	// session_start();
+	require_once('php/session.php');
 	require_once('php/fonction.php');
-	$bdd = new DB();
 	
 	$clts = SQLSelect("SELECT * FROM client WHERE statutClient='ON' ORDER BY codeClient");
 	$nl = 1;
